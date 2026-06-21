@@ -11,6 +11,7 @@ from __future__ import annotations
 from job_hunter.locations import location_score
 from job_hunter.models import Job
 from job_hunter.profile import Lane, Profile
+from job_hunter.recency import recency_penalty
 from job_hunter.reputation import reputation_points
 
 # Weight per matched skill tier (added to the score, then the whole skill block is capped).
@@ -101,6 +102,11 @@ def score_job(job: Job, profile: Profile) -> Job:
     score += rep_pts
     breakdown["reputation"] = rep_pts
 
+    # 7) Recency — stale postings get a mild, capped penalty (skipped if no date).
+    rec_pts, rec_detail = recency_penalty(job.posted_at)
+    score += rec_pts
+    breakdown["recency"] = rec_pts
+
     score = max(0, min(100, score))
     job.fit_score = int(round(score))
     job.fit_label = label_for(job.fit_score)
@@ -112,5 +118,6 @@ def score_job(job: Job, profile: Profile) -> Job:
         "lane_id": lane.id,
         "reputation_tier": rep_tier,
         "location_tier": loc_detail.get("location_tier", 0),
+        "recency_age_days": rec_detail.get("recency_age_days"),
     }
     return job

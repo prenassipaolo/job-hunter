@@ -41,7 +41,7 @@ def _role_markdown(job: Job) -> str:
     if job.notes:
         lines += ["## Fit note", "", job.notes, ""]
     lines += ["## Why this score", "", "| Component | Points |", "| --- | ---: |"]
-    for key in ("base", "lane_relevance", "skills", "location", "seniority", "negatives", "reputation"):
+    for key in ("base", "lane_relevance", "skills", "location", "seniority", "negatives", "reputation", "recency"):
         if key in b:
             lines.append(f"| {key.replace('_', ' ')} | {b[key]:+d} |")
     lines.append(f"| **total** | **{job.fit_score}** |")
