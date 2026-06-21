@@ -5,10 +5,11 @@ grow — top trading firms, big tech, serious fintech/scale-ups, and well-regard
 banks/research labs — not unknown small companies. This module tiers known employers
 and lets the pipeline filter out everything it can't recognise as reputable.
 
-Tiers (higher = more prestige / learning signal):
-  3  elite quant/trading + frontier tech + tier-1 banks
+Tiers (1 = best; a larger number is less strong; 0 = unrecognised):
+  1  elite quant/trading + frontier tech + tier-1 banks
   2  strong tech, fintech scale-ups, well-known banks & research-grade firms
-  1  solid, reputable engineering employers worth working for
+  3  solid, reputable engineering employers worth working for
+  0  not in the list (unrecognised)
 
 Add companies freely — matching is on normalised, word-ish substrings.
 """
@@ -17,8 +18,8 @@ from __future__ import annotations
 
 import re
 
-# --- Tier 3: elite -----------------------------------------------------------
-TIER3 = {
+# --- Tier 1: elite (best) ----------------------------------------------------
+TIER1 = {
     # Quant / proprietary trading
     "optiver", "imc", "imc trading", "flow traders", "jane street", "jump trading",
     "citadel", "citadel securities", "drw", "da vinci", "davinci", "maven securities",
@@ -58,8 +59,8 @@ TIER2 = {
     "qualcomm", "arm", "ibm", "sap", "siemens", "bosch",
 }
 
-# --- Tier 1: solid -----------------------------------------------------------
-TIER1 = {
+# --- Tier 3: solid -----------------------------------------------------------
+TIER3 = {
     "accenture", "capgemini", "deloitte", "kpmg", "pwc", "ey", "mckinsey", "bcg",
     "bain", "thoughtworks", "epam", "cognizant", "infosys", "tcs",
     "vodafone", "ericsson", "nokia", "klm", "klarna", "exact", "afterpay",
@@ -67,7 +68,8 @@ TIER1 = {
     "data science", "datacamp", "dataiku", "ataccama",
 }
 
-TIER_POINTS = {3: 20, 2: 13, 1: 7, 0: 0}
+# 1 = best, so tier 1 earns the most points; 0 (unrecognised) earns none.
+TIER_POINTS = {1: 20, 2: 13, 3: 7, 0: 0}
 
 
 def _normalise(company: str) -> str:
@@ -87,11 +89,11 @@ def _matches(norm: str, name: str) -> bool:
 
 
 def tier_for(company: str) -> int:
-    """Return the reputation tier (3/2/1) for a company, or 0 if unrecognised."""
+    """Return the reputation tier (1=best, 2, 3) for a company, or 0 if unrecognised."""
     norm = _normalise(company)
     if not norm:
         return 0
-    for tier, names in ((3, TIER3), (2, TIER2), (1, TIER1)):
+    for tier, names in ((1, TIER1), (2, TIER2), (3, TIER3)):
         for name in names:
             if _matches(norm, name):
                 return tier

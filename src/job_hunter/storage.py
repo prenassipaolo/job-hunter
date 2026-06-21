@@ -8,7 +8,7 @@ from pathlib import Path
 
 from job_hunter.models import Job
 
-_TIER_NAME = {3: "Elite", 2: "Strong", 1: "Solid", 0: "Unrecognised"}
+_TIER_NAME = {1: "Elite", 2: "Strong", 3: "Solid", 0: "Unrecognised"}
 
 
 def _display_score(job: Job) -> int:

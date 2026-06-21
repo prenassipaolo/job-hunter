@@ -17,7 +17,8 @@ def _job(**kw) -> Job:
 
 
 def test_reputation_tiers():
-    assert tier_for("Optiver B.V.") == 3
+    # 1 = best: elite firms are tier 1, unrecognised is 0.
+    assert tier_for("Optiver B.V.") == 1
     assert tier_for("Adyen") == 2
     assert is_reputable("J.P. Morgan")
     assert not is_reputable("Random Tiny Startup XYZ")
@@ -35,7 +36,7 @@ def test_strong_quant_role_scores_high():
     score_job(job, PROFILE)
     assert job.fit_score >= 70
     assert job.fit_label == "Strong"
-    assert job.fit_breakdown["reputation_tier"] == 3
+    assert job.fit_breakdown["reputation_tier"] == 1
 
 
 def test_offtarget_role_scores_low():
