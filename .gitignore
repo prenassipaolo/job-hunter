@@ -19,6 +19,7 @@ dist/
 data/personas/*.yaml
 !data/personas/_template.yaml
 !data/personas/example.yaml
+!data/personas/paolo.yaml
 
 # Generated artifacts (phase JSON + per-persona role files). Local only.
 data/work/

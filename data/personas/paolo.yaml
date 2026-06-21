@@ -1,0 +1,229 @@
+# Persona — drives both the search queries and the heuristic fit scorer.
+# Edit weights to retune how strongly each signal pushes the fit probability.
+# This file is personal and git-ignored. See data/personas/_template.yaml for a blank.
+
+id: paolo
+name: Paolo Prenassi
+based_in: Utrecht, Netherlands
+# Countries we actually want roles in. Anything else is penalised heavily.
+target_countries: [Switzerland, Ireland, Netherlands, "United Kingdom"]
+# City hints used to query location-aware providers (TheMuse).
+target_cities:
+  - "Amsterdam, Netherlands"
+  - "Utrecht, Netherlands"
+  - "Zurich, Switzerland"
+  - "Geneva, Switzerland"
+  - "Dublin, Ireland"
+  - "London, United Kingdom"
+remote_ok: true
+
+# The three lanes Paolo can credibly target. Each role is matched against all of
+# them and keeps the best-scoring lane. `title_terms` are matched against the job
+# TITLE (strong signal); `boost_skills` against the full description.
+lanes:
+  - id: quant
+    label: "Quant Developer / Credit-Risk & Model Engineering"
+    title_terms:
+      [
+        "quant",
+        "quantitative developer",
+        "quantitative analyst",
+        "model developer",
+        "model validation",
+        "credit risk",
+        "risk engineer",
+        "model implementation",
+      ]
+    boost_skills:
+      [
+        "credit risk",
+        "pd",
+        "lgd",
+        "ead",
+        "irb",
+        "basel",
+        "backtesting",
+        "model monitoring",
+        "regulatory",
+        "capital",
+        "derivatives",
+        "pricing",
+      ]
+  - id: ai
+    label: "Applied AI / ML / LLM Engineering"
+    title_terms:
+      [
+        "machine learning",
+        "ml engineer",
+        "ai engineer",
+        "applied ai",
+        "applied scientist",
+        "llm",
+        "genai",
+        "nlp",
+        "research engineer",
+        "mlops",
+      ]
+    boost_skills:
+      [
+        "llm",
+        "rag",
+        "transformers",
+        "pytorch",
+        "tensorflow",
+        "hugging face",
+        "langchain",
+        "prompt",
+        "evaluation",
+        "embeddings",
+        "fine-tuning",
+        "nlp",
+      ]
+  - id: data
+    label: "Data Scientist / Data & ML Platform Engineer"
+    title_terms:
+      [
+        "data scientist",
+        "data engineer",
+        "machine learning",
+        "python engineer",
+        "backend engineer",
+        "platform engineer",
+        "data platform",
+      ]
+    boost_skills:
+      [
+        "spark",
+        "databricks",
+        "airflow",
+        "etl",
+        "data pipeline",
+        "kafka",
+        "snowflake",
+        "feature engineering",
+        "forecasting",
+        "recommender",
+      ]
+
+# Core skills Paolo can defend in an interview. Matched against the description;
+# each hit adds to the fit score (capped so a keyword-stuffed JD can't dominate).
+skills:
+  strong: # things he does daily / has production experience with
+    [
+      "python",
+      "pandas",
+      "numpy",
+      "scipy",
+      "sql",
+      "credit risk",
+      "celery",
+      "docker",
+      "azure",
+      "git",
+      "databricks",
+      "spark",
+      "pyarrow",
+      "ci/cd",
+      "pytest",
+      "data contract",
+      "schema",
+      "backtesting",
+      "model monitoring",
+      "statistical",
+      "machine learning",
+    ]
+  working: # solid, slightly less central
+    [
+      "c++",
+      "r",
+      "nlp",
+      "scikit-learn",
+      "kubernetes",
+      "rabbitmq",
+      "redis",
+      "sas",
+      "optimization",
+      "graph",
+      "forecasting",
+      "recommender",
+      "tensorflow",
+      "pytorch",
+    ]
+  learning: # genuine but learner-level (LLM pivot) — credible, not production
+    ["llm", "rag", "transformers", "langchain", "genai", "vector", "embeddings", "prompt"]
+
+# Seniority Paolo fits. Used to reward good matches and penalise mismatches.
+seniority:
+  fit: ["mid", "medior", "senior", "experienced", "ii", "iii"]
+  too_junior: ["intern", "internship", "graduate", "working student", "apprentice", "trainee", "junior"]
+  too_senior: ["head of", "director", "vp", "vice president", "chief", "principal", "staff", "lead "]
+
+# Role-type gate (phase 1). Paolo wants hands-on developer / quant / data-scientist
+# roles — NOT management, consulting, ops, sales or design. The title must contain at
+# least one `core` term and none of the `exclude` terms.
+role_gate:
+  core:
+    [
+      "developer",
+      "engineer",
+      "quant",
+      "data scientist",
+      "machine learning",
+      "ml ",
+      "ai ",
+      "scientist",
+      "programmer",
+      "software",
+      "research engineer",
+      "sde",
+    ]
+  exclude:
+    [
+      "manager",
+      "consultant",
+      "architect",
+      "operations",
+      "sales",
+      "recruiter",
+      "director",
+      "account ",
+      "customer",
+      "product owner",
+      "product manager",
+      "project manager",
+      "designer",
+      "marketing",
+      "talent",
+      "people ",
+      "support",
+      "administrator",
+      "scrum",
+      "delivery lead",
+    ]
+
+# Phrases that strongly reduce fit (wrong stack, hard blockers, wrong domain).
+negative_signals:
+  [
+    "security clearance",
+    "active clearance",
+    "must be a citizen",
+    "native german required",
+    "fluent german",
+    "fluent french required",
+    "10+ years",
+    "12+ years",
+    "15+ years",
+    "salesforce",
+    "php",
+    "wordpress",
+    ".net",
+    "c# developer",
+    "java developer",
+    "frontend developer",
+    "react developer",
+    "embedded c",
+    "manual tester",
+    "sales executive",
+    "account manager",
+    "recruiter",
+  ]
