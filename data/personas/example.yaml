@@ -1,0 +1,74 @@
+# Example persona — FICTIONAL. Committed so the repo runs out of the box and tests
+# have a stable fixture. Copy _template.yaml to make your own; do NOT put real
+# personal data here. Run it with:  job-hunter run --persona example
+
+id: example
+name: Alex Doe
+based_in: Amsterdam, Netherlands
+# Countries we actually want roles in. Anything else is penalised heavily.
+target_countries: [Switzerland, Ireland, Netherlands, "United Kingdom"]
+# City hints used to query location-aware providers (TheMuse).
+target_cities:
+  - "Amsterdam, Netherlands"
+  - "Zurich, Switzerland"
+  - "Dublin, Ireland"
+  - "London, United Kingdom"
+remote_ok: true
+
+# The lanes this persona can credibly target. Each role is matched against all of
+# them and keeps the best-scoring lane. `title_terms` match the job TITLE (strong
+# signal); `boost_skills` match the full description.
+lanes:
+  - id: quant
+    label: "Quant Developer / Model Engineering"
+    title_terms:
+      ["quant", "quantitative developer", "quantitative analyst", "model developer", "risk engineer"]
+    boost_skills:
+      ["credit risk", "pricing", "derivatives", "backtesting", "model monitoring", "regulatory"]
+  - id: ai
+    label: "Applied AI / ML Engineering"
+    title_terms:
+      ["machine learning", "ml engineer", "ai engineer", "applied scientist", "research engineer", "mlops"]
+    boost_skills:
+      ["pytorch", "tensorflow", "llm", "rag", "transformers", "nlp", "embeddings", "evaluation"]
+  - id: data
+    label: "Data Scientist / Data Platform Engineer"
+    title_terms:
+      ["data scientist", "data engineer", "python engineer", "backend engineer", "data platform"]
+    boost_skills:
+      ["spark", "databricks", "airflow", "etl", "data pipeline", "snowflake", "forecasting"]
+
+# Core skills the persona can defend in an interview. Matched against the description;
+# each hit adds to the fit score (capped so a keyword-stuffed JD can't dominate).
+skills:
+  strong: # daily / production experience
+    ["python", "pandas", "numpy", "sql", "credit risk", "docker", "azure", "git", "databricks",
+     "spark", "c++", "ci/cd", "pytest", "backtesting", "machine learning", "statistical"]
+  working: # solid, slightly less central
+    ["r", "scikit-learn", "kubernetes", "pytorch", "tensorflow", "nlp", "optimization", "forecasting"]
+  learning: # genuine but learner-level — credible, not production
+    ["llm", "rag", "transformers", "langchain", "embeddings", "prompt"]
+
+# Seniority the persona fits. Rewards matches and penalises mismatches.
+seniority:
+  fit: ["mid", "medior", "senior", "experienced", "ii", "iii"]
+  too_junior: ["intern", "internship", "graduate", "working student", "apprentice", "trainee", "junior"]
+  too_senior: ["head of", "director", "vp", "vice president", "chief", "principal", "staff", "lead "]
+
+# Role-type gate (phase 1). Hands-on developer / quant / data-scientist roles only —
+# NOT management, consulting, ops, sales or design. The title must contain at least
+# one `core` term and none of the `exclude` terms.
+role_gate:
+  core:
+    ["developer", "engineer", "quant", "data scientist", "machine learning", "ml ", "ai ",
+     "scientist", "programmer", "software", "research engineer", "sde"]
+  exclude:
+    ["manager", "consultant", "architect", "operations", "sales", "recruiter", "director",
+     "account ", "customer", "product owner", "product manager", "project manager", "designer",
+     "marketing", "talent", "people ", "support", "administrator", "scrum", "delivery lead"]
+
+# Phrases that strongly reduce fit (wrong stack, hard blockers, wrong domain).
+negative_signals:
+  ["security clearance", "active clearance", "must be a citizen", "fluent german", "10+ years",
+   "12+ years", "15+ years", "salesforce", "php", "wordpress", ".net", "c# developer",
+   "java developer", "frontend developer", "react developer", "embedded c", "manual tester"]

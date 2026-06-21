@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Env / secrets
+.env
+
+# Tooling
+.ruff_cache/
+.pytest_cache/
+
+# Personal personas — never commit real candidate data. Only the template and the
+# fictional example persona are tracked; everything else here stays local.
+data/personas/*.yaml
+!data/personas/_template.yaml
+!data/personas/example.yaml
+
+# Generated artifacts (phase JSON + per-persona role files). Local only.
+data/work/
+data/roles/

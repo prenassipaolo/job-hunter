@@ -1,0 +1,33 @@
+[project]
+name = "job-hunter"
+version = "0.1.0"
+description = "Persona-driven job hunter: finds high-fit roles at reputable employers across CH, IE, NL and the UK from free job APIs, scores fit probability, and writes per-role files with link and salary."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "job-hunter contributors" }]
+dependencies = [
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "beautifulsoup4>=4.12",
+    "rich>=13.7",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# Optional Claude-Haiku enrichment. Install with: uv sync --extra llm
+llm = ["anthropic>=0.40"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+job-hunter = "job_hunter.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/job_hunter"]
+
+[tool.ruff]
+line-length = 100
+src = ["src"]

@@ -1,0 +1,75 @@
+# ============================================================================
+# PERSONA TEMPLATE — copy this file to data/personas/<your-id>.yaml and fill it in.
+#
+#   cp data/personas/_template.yaml data/personas/jordan.yaml
+#   # edit it, then:
+#   job-hunter run --persona jordan
+#
+# A "persona" is an anonymised candidate description that drives BOTH the job
+# queries and the fit scorer. Results are stored per persona under
+# data/roles/<id>/. Any file you create here (except this template and
+# example.yaml) is git-ignored, so your real details never get committed.
+#
+# Tips:
+#  - Keep it truthful: the fit score is only as honest as the skills you list.
+#  - Use lowercase for every term in lists — matching is case-insensitive but
+#    expects lowercase.
+#  - Short tokens like "ml ", "ai " keep the trailing space on purpose (word
+#    boundary) so they don't match inside other words.
+#  - Delete the < ... > placeholders; the program will error on a half-filled file.
+# ============================================================================
+
+# REQUIRED. Short, unique, filename-safe (a-z, 0-9, dashes). Used in CLI + paths.
+id: <your-id>
+
+# REQUIRED. Display name (a pseudonym is fine — this can appear in output files).
+name: <Display Name>
+
+# Where you're based, free text. Used by the LLM enrichment for context only.
+based_in: <City, Country>
+
+# REQUIRED. Countries you actually want roles in. Everything else is penalised hard.
+target_countries: [Switzerland, Ireland, Netherlands, "United Kingdom"]
+
+# City hints for location-aware providers (TheMuse). "City, Country" format.
+target_cities:
+  - "<City, Country>"
+  - "<City, Country>"
+
+# Whether remote roles outside the target countries are acceptable.
+remote_ok: true
+
+# REQUIRED. The career lanes you can credibly target (1-4). Each role is scored
+# against every lane and keeps its best lane. `title_terms` match the job TITLE
+# (strong signal); `boost_skills` match the full job description.
+lanes:
+  - id: <lane-id>                       # e.g. quant / ai / data / backend
+    label: "<Human-readable lane name>"
+    title_terms: ["<title keyword>", "<title keyword>"]
+    boost_skills: ["<domain keyword>", "<domain keyword>"]
+  # - id: <another-lane>
+  #   label: "..."
+  #   title_terms: [...]
+  #   boost_skills: [...]
+
+# REQUIRED. Your skills, in three honesty buckets. Each description match adds to
+# the score (strong > working > learning), capped so keyword-stuffing can't dominate.
+skills:
+  strong: ["<daily / production skill>", "<...>"]
+  working: ["<solid but less central skill>", "<...>"]
+  learning: ["<genuine but learner-level skill>", "<...>"]
+
+# REQUIRED. Seniority signals. `fit` rewards a match in the title; the others penalise.
+seniority:
+  fit: ["mid", "medior", "senior", "experienced"]
+  too_junior: ["intern", "graduate", "working student", "trainee", "junior"]
+  too_senior: ["head of", "director", "vp", "chief", "principal", "staff", "lead "]
+
+# REQUIRED. Role-type gate (phase 1). A job TITLE must contain >=1 `core` term and
+# NONE of the `exclude` terms to survive. Tune to the kind of work you do.
+role_gate:
+  core: ["developer", "engineer", "quant", "data scientist", "machine learning", "scientist", "software"]
+  exclude: ["manager", "consultant", "sales", "recruiter", "director", "designer", "marketing", "support"]
+
+# OPTIONAL. Phrases that strongly reduce fit (wrong stack, hard blockers, wrong domain).
+negative_signals: ["security clearance", "10+ years", "php", "wordpress", ".net", "manual tester"]
