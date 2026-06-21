@@ -35,6 +35,8 @@ class CollectConfig:
     role_gate: bool = True
     prescreen_min: int = 45
     keep: int = 120
+    per_company_cap: int = 8   # max kept candidates per company (0 = unlimited)
+    per_provider_cap: int = 0  # max kept candidates per provider (0 = unlimited)
 
 
 def _term_in(text: str, term: str) -> bool:
@@ -107,6 +109,30 @@ def _collapse_variants(jobs: list[Job], profile: Profile) -> list[Job]:
     return result
 
 
+def _select_diverse(jobs: list[Job], keep: int, per_company: int, per_provider: int) -> list[Job]:
+    """Pick up to `keep` jobs from a best-first list without one company/provider
+    dominating. A capped slot is simply skipped, so the next-best diverse job takes it.
+    """
+    from collections import Counter
+
+    out: list[Job] = []
+    by_company: Counter[str] = Counter()
+    by_provider: Counter[str] = Counter()
+    for j in jobs:  # assumes already sorted best-first
+        company = _norm_key(j.company)
+        provider = j.source.split(":")[0]
+        if per_company and by_company[company] >= per_company:
+            continue
+        if per_provider and by_provider[provider] >= per_provider:
+            continue
+        out.append(j)
+        by_company[company] += 1
+        by_provider[provider] += 1
+        if len(out) >= keep:
+            break
+    return out
+
+
 def collect(cfg: CollectConfig) -> list[Job]:
     profile = Profile.load(cfg.profile_path)
 
@@ -149,8 +175,9 @@ def collect(cfg: CollectConfig) -> list[Job]:
 
     jobs = [j for j in jobs if j.fit_score >= cfg.prescreen_min]
     jobs.sort(key=lambda j: j.fit_score, reverse=True)
-    jobs = jobs[: cfg.keep]
-    console.print(f"[bold]{len(jobs)}[/] candidates above prescreen {cfg.prescreen_min}")
+    jobs = _select_diverse(jobs, cfg.keep, cfg.per_company_cap, cfg.per_provider_cap)
+    console.print(f"[bold]{len(jobs)}[/] candidates above prescreen {cfg.prescreen_min}"
+                  f" (<= {cfg.per_company_cap or '∞'}/company)")
 
     out = Path(cfg.work_dir)
     out.mkdir(parents=True, exist_ok=True)

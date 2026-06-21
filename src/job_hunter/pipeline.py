@@ -20,6 +20,8 @@ class RunConfig:
     countries_only: bool = True
     role_gate: bool = True
     prescreen_min: int = 45
+    per_company_cap: int = 8
+    per_provider_cap: int = 0
     enrich_top: int = 25
     refetch_pages: bool = True
     use_llm: bool = False
@@ -38,6 +40,8 @@ def run(cfg: RunConfig) -> list[Job]:
             countries_only=cfg.countries_only,
             role_gate=cfg.role_gate,
             prescreen_min=cfg.prescreen_min,
+            per_company_cap=cfg.per_company_cap,
+            per_provider_cap=cfg.per_provider_cap,
         )
     )
     enrich(

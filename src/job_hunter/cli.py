@@ -23,6 +23,7 @@ from job_hunter.phases.enrich import EnrichConfig, enrich
 from job_hunter.phases.rank import RankConfig, rank
 from job_hunter.pipeline import RunConfig, run
 from job_hunter.providers import ALL_PROVIDERS
+from job_hunter.recency import parse_date
 
 console = Console()
 ROOT = Path(__file__).resolve().parents[2]
@@ -56,6 +57,10 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--anywhere", action="store_true", help="don't restrict to CH/IE/NL/UK/remote")
         sp.add_argument("--no-role-gate", action="store_true", help="don't require dev/quant/DS titles")
         sp.add_argument("--prescreen-min", type=int, default=45)
+        sp.add_argument("--per-company-cap", type=int, default=8,
+                        help="max candidates per company so one employer can't dominate (0=off)")
+        sp.add_argument("--per-provider-cap", type=int, default=0,
+                        help="max candidates per source/provider (0=off)")
 
     def add_enrich_args(sp):
         sp.add_argument("--enrich-top", type=int, default=25, help="how many candidates phase 2 evaluates")
@@ -82,12 +87,14 @@ def _show(jobs):
         console.print("[yellow]No roles. Try --include-unknown, --anywhere, or lower --prescreen-min.[/]")
         return
     table = Table(title="Top roles by fit")
-    for col in ("Tier", "Fit", "AI", "Company", "Role", "Country", "Salary"):
+    for col in ("Tier", "Fit", "AI", "Company", "Role", "Country", "Posted", "Salary"):
         table.add_column(col, justify="right" if col in ("Tier", "Fit", "AI") else "left")
     for j in jobs[:25]:
         ai = f"{j.ai_score}%" if j.ai_score is not None else "—"
+        posted = parse_date(j.posted_at)
         table.add_row(str(j.tier), f"{j.final_score or j.fit_score}%", ai, j.company,
-                      j.title[:42], j.country or "—", j.salary_text)
+                      j.title[:42], j.country or "—", posted.isoformat() if posted else "—",
+                      j.salary_text)
     console.print(table)
 
 
@@ -138,6 +145,7 @@ def _dispatch(cmd, args, profile_path, work, out, tiers_path) -> int:
             profile_path=profile_path, work_dir=work, providers=args.providers,
             reputable_only=not args.include_unknown, countries_only=not args.anywhere,
             role_gate=not args.no_role_gate, prescreen_min=args.prescreen_min,
+            per_company_cap=args.per_company_cap, per_provider_cap=args.per_provider_cap,
         ))
     elif cmd == "enrich":
         enrich(EnrichConfig(
@@ -155,6 +163,7 @@ def _dispatch(cmd, args, profile_path, work, out, tiers_path) -> int:
             profile_path=profile_path, work_dir=work, out_dir=out, providers=args.providers,
             reputable_only=not args.include_unknown, countries_only=not args.anywhere,
             role_gate=not args.no_role_gate, prescreen_min=args.prescreen_min,
+            per_company_cap=args.per_company_cap, per_provider_cap=args.per_provider_cap,
             enrich_top=args.enrich_top, refetch_pages=not args.no_refetch, use_llm=args.llm,
             final_min=args.final_min, top_n=args.top, tiers_path=tiers_path,
         ))
