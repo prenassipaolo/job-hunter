@@ -14,6 +14,7 @@ from pathlib import Path
 from rich.console import Console
 
 from job_hunter.models import Job
+from job_hunter.recency import age_days
 from job_hunter.scoring.heuristic import label_for
 from job_hunter.storage import write_results
 from job_hunter.tiers import apply_overrides, load_overrides
@@ -39,6 +40,12 @@ def _blend(job: Job) -> int:
     return int(round(W_HEURISTIC * job.fit_score + W_AI * job.ai_score))
 
 
+def _age_key(job: Job) -> int:
+    """Sort helper: smaller = fresher. Unknown date sinks to the bottom."""
+    age = age_days(job.posted_at)
+    return age if age is not None else 10**6
+
+
 def rank(cfg: RankConfig) -> list[Job]:
     path = Path(cfg.work_dir) / "phase2_enriched.json"
     if not path.exists():
@@ -55,7 +62,8 @@ def rank(cfg: RankConfig) -> list[Job]:
         apply_overrides(jobs, load_overrides(cfg.tiers_path))
 
     jobs = [j for j in jobs if j.final_score >= cfg.final_min]
-    jobs.sort(key=lambda j: (j.tier, -j.final_score))
+    # Sort: manual tier (1=best), then fit desc, then freshest first (unknown date last).
+    jobs.sort(key=lambda j: (j.tier, -j.final_score, _age_key(j)))
     jobs = jobs[: cfg.top_n]
 
     run_dir = write_results(jobs, cfg.out_dir)

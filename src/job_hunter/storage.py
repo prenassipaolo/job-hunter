@@ -7,8 +7,15 @@ from datetime import date
 from pathlib import Path
 
 from job_hunter.models import Job
+from job_hunter.recency import parse_date
 
 _TIER_NAME = {1: "Elite", 2: "Strong", 3: "Solid", 0: "Unrecognised"}
+
+
+def _posted(job: Job) -> str:
+    """Normalised posting date (YYYY-MM-DD) for display, or '—' if unknown."""
+    d = parse_date(job.posted_at)
+    return d.isoformat() if d else "—"
 
 
 def _display_score(job: Job) -> int:
@@ -86,8 +93,8 @@ def _index_markdown(jobs: list[Job]) -> str:
         "",
         f"{len(jobs)} roles, ranked by estimated fit probability for the persona.",
         "",
-        "| Tier | Fit | AI | Company | Role | Lane | Country | Salary | Link |",
-        "| ---: | ---: | ---: | --- | --- | --- | --- | --- | --- |",
+        "| Tier | Fit | AI | Company | Role | Lane | Country | Posted | Salary | Link |",
+        "| ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for j in jobs:
         lane_short = j.fit_breakdown.get("lane_id", "")
@@ -97,7 +104,7 @@ def _index_markdown(jobs: list[Job]) -> str:
         ai = f"{j.ai_score}%" if j.ai_score is not None else "—"
         lines.append(
             f"| {j.tier} | {_display_score(j)}% | {ai} | {company} | {title} | {lane_short} | "
-            f"{j.country or '—'} | {j.salary_text} | {link} |"
+            f"{j.country or '—'} | {_posted(j)} | {j.salary_text} | {link} |"
         )
     lines.append("")
     return "\n".join(lines)
