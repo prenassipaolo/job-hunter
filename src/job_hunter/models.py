@@ -6,6 +6,10 @@ import hashlib
 import re
 from dataclasses import asdict, dataclass, field
 
+# Manual job tier: 1 = best, larger = worse. Every job starts here (lowest) and is
+# promoted by hand; overrides are persisted per persona (see tiers.py).
+UNCURATED_TIER = 5
+
 
 @dataclass
 class Job:
@@ -37,6 +41,9 @@ class Job:
     ai_score: int | None = None  # 0-100 fit as judged by Claude Haiku
     final_score: int = 0  # blended ranking score
     page_refetched: bool = False  # whether phase 2 re-pulled the live page
+
+    # Manual curation, persisted per persona (1 = best; UNCURATED_TIER = lowest default).
+    tier: int = UNCURATED_TIER
 
     @property
     def id(self) -> str:
