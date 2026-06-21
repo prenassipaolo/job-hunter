@@ -10,25 +10,29 @@
 # data/roles/<id>/. Any file you create here (except this template and
 # example.yaml) is git-ignored, so your real details never get committed.
 #
+# MINIMUM TO RUN: just one `lanes` entry with `title_terms`. Everything else is
+# optional and has a safe default — but the more you fill in, the better the scoring.
+#
 # Tips:
 #  - Keep it truthful: the fit score is only as honest as the skills you list.
 #  - Use lowercase for every term in lists — matching is case-insensitive but
 #    expects lowercase.
 #  - Short tokens like "ml ", "ai " keep the trailing space on purpose (word
 #    boundary) so they don't match inside other words.
-#  - Delete the < ... > placeholders; the program will error on a half-filled file.
+#  - Delete the < ... > placeholders before running.
 # ============================================================================
 
-# REQUIRED. Short, unique, filename-safe (a-z, 0-9, dashes). Used in CLI + paths.
+# Optional (default: filename). Short, unique, filename-safe id. Used in CLI + paths.
 id: <your-id>
 
-# REQUIRED. Display name (a pseudonym is fine — this can appear in output files).
+# Optional (default: the id). Display name (a pseudonym is fine).
 name: <Display Name>
 
 # Where you're based, free text. Used by the LLM enrichment for context only.
 based_in: <City, Country>
 
-# REQUIRED. Countries you actually want roles in. Everything else is penalised hard.
+# Optional (default: none). Informational; location ranking uses the global tiers in
+# locations.py. List the countries you care about for your own reference.
 target_countries: [Switzerland, Ireland, Netherlands, "United Kingdom"]
 
 # City hints for location-aware providers (TheMuse). "City, Country" format.
@@ -39,9 +43,9 @@ target_cities:
 # Whether remote roles outside the target countries are acceptable.
 remote_ok: true
 
-# REQUIRED. The career lanes you can credibly target (1-4). Each role is scored
-# against every lane and keeps its best lane. `title_terms` match the job TITLE
-# (strong signal); `boost_skills` match the full job description.
+# *** THE ONLY HARD REQUIREMENT *** The career lanes you can credibly target (1-4).
+# Each role is scored against every lane and keeps its best lane. `title_terms` match
+# the job TITLE (strong signal); `boost_skills` match the full job description.
 lanes:
   - id: <lane-id>                       # e.g. quant / ai / data / backend
     label: "<Human-readable lane name>"
@@ -52,21 +56,21 @@ lanes:
   #   title_terms: [...]
   #   boost_skills: [...]
 
-# REQUIRED. Your skills, in three honesty buckets. Each description match adds to
-# the score (strong > working > learning), capped so keyword-stuffing can't dominate.
+# Optional (default: empty) but strongly recommended. Your skills, in three honesty
+# buckets. Each match adds to the score (strong > working > learning), capped.
 skills:
   strong: ["<daily / production skill>", "<...>"]
   working: ["<solid but less central skill>", "<...>"]
   learning: ["<genuine but learner-level skill>", "<...>"]
 
-# REQUIRED. Seniority signals. `fit` rewards a match in the title; the others penalise.
+# Optional (default: empty). Seniority signals. `fit` rewards a title match; others penalise.
 seniority:
   fit: ["mid", "medior", "senior", "experienced"]
   too_junior: ["intern", "graduate", "working student", "trainee", "junior"]
   too_senior: ["head of", "director", "vp", "chief", "principal", "staff", "lead "]
 
-# REQUIRED. Role-type gate (phase 1). A job TITLE must contain >=1 `core` term and
-# NONE of the `exclude` terms to survive. Tune to the kind of work you do.
+# Optional (default: no role filter). Role-type gate (phase 1). A job TITLE must contain
+# >=1 `core` term and NONE of the `exclude` terms. Leave empty to keep all role types.
 role_gate:
   core: ["developer", "engineer", "quant", "data scientist", "machine learning", "scientist", "software"]
   exclude: ["manager", "consultant", "sales", "recruiter", "director", "designer", "marketing", "support"]

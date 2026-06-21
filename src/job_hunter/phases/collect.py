@@ -51,6 +51,8 @@ def passes_role_gate(title: str, profile: Profile) -> bool:
     exclude = profile.role_gate.get("exclude", [])
     if any(_term_in(t, x) for x in exclude):
         return False
+    if not core:
+        return True  # no core terms configured -> don't filter by role type
     return any(_term_in(t, c) for c in core)
 
 

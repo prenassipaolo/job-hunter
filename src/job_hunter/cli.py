@@ -125,6 +125,14 @@ def main(argv: list[str] | None = None) -> int:
     cmd = args.cmd
     profile_path, work, out, tiers_path = _resolve(args)
 
+    try:
+        return _dispatch(cmd, args, profile_path, work, out, tiers_path)
+    except (ValueError, FileNotFoundError) as exc:
+        console.print(f"[red]Can't run:[/] {exc}")
+        return 2
+
+
+def _dispatch(cmd, args, profile_path, work, out, tiers_path) -> int:
     if cmd == "collect":
         collect(CollectConfig(
             profile_path=profile_path, work_dir=work, providers=args.providers,
