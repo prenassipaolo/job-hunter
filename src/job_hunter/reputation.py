@@ -1,9 +1,11 @@
 """Curated employer-reputation list.
 
-the persona only wants roles at places with a strong reputation and real room to learn and
-grow — top trading firms, big tech, serious fintech/scale-ups, and well-regarded
-banks/research labs — not unknown small companies. This module tiers known employers
-and lets the pipeline filter out everything it can't recognise as reputable.
+The persona wants roles at places with real room to learn or earn — top trading firms,
+big tech, serious fintech/scale-ups, well-regarded banks/research labs, AND smaller
+companies that are a strong place to learn a lot or earn a lot. Size is not the point;
+quality of the opportunity is. This module tiers known employers; only truly unknown
+ones are treated as unrecognised. (Fit remains the dominant score — reputation only
+adds a modest bonus, see scoring/heuristic.py.)
 
 Tiers (1 = best; a larger number is less strong; 0 = unrecognised):
   1  elite quant/trading + frontier tech + tier-1 banks
@@ -35,6 +37,9 @@ TIER1 = {
     "jp morgan", "j.p. morgan", "jpmorgan", "goldman sachs", "morgan stanley",
     "bank of america", "barclays", "deutsche bank", "ubs", "credit suisse",
     "bloomberg", "blackrock",
+    # Elite but smaller — top quant shops + frontier AI labs (small, very high learn/earn)
+    "radix trading", "headlands technologies", "vatic labs", "gsa capital", "capula",
+    "wintermute", "graham capital", "cohere", "hugging face", "scale ai",
 }
 
 # --- Tier 2: strong ----------------------------------------------------------
@@ -57,6 +62,13 @@ TIER2 = {
     # Research-grade / deep-tech / pharma DS
     "asml", "philips", "roche", "novartis", "shell", "elsevier", "cern", "tomtom",
     "qualcomm", "arm", "ibm", "sap", "siemens", "bosch",
+    # Smaller but high learning/earning — AI/ML infra, dev-tools, fintech & EU scale-ups
+    "perplexity", "elevenlabs", "together ai", "contextual ai", "weights & biases",
+    "weaviate", "pinecone", "qdrant", "dbt labs", "fivetran", "hex", "tecton",
+    "gocardless", "form3", "thought machine", "griffin", "qonto", "pennylane", "sumup",
+    "raisin", "solaris", "fourthline", "mews", "framer", "silverflow", "datasnipper",
+    "scandit", "nexthink", "sonarsource", "frontify", "beekeeper", "unit8", "squirro",
+    "intercom", "tines", "workhuman", "letsgetchecked", "flipdish",
 }
 
 # --- Tier 3: solid -----------------------------------------------------------

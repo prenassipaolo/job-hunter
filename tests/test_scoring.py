@@ -21,6 +21,9 @@ def test_reputation_tiers():
     assert tier_for("Optiver B.V.") == 1
     assert tier_for("Adyen") == 2
     assert is_reputable("J.P. Morgan")
+    # Small-but-high-value firms are recognised too (step 5).
+    assert tier_for("Cohere") == 1          # frontier AI lab, small but elite
+    assert tier_for("GoCardless") == 2      # fintech scale-up
     assert not is_reputable("Random Tiny Startup XYZ")
     # 'ing' must not match inside 'trading'
     assert tier_for("Trading Co") == 0
