@@ -25,6 +25,7 @@ class RunConfig:
     use_llm: bool = False
     final_min: int = 0
     top_n: int = 60
+    tiers_path: str = ""
 
 
 def run(cfg: RunConfig) -> list[Job]:
@@ -49,5 +50,8 @@ def run(cfg: RunConfig) -> list[Job]:
         )
     )
     return rank(
-        RankConfig(work_dir=cfg.work_dir, out_dir=cfg.out_dir, final_min=cfg.final_min, top_n=cfg.top_n)
+        RankConfig(
+            work_dir=cfg.work_dir, out_dir=cfg.out_dir, final_min=cfg.final_min,
+            top_n=cfg.top_n, tiers_path=cfg.tiers_path,
+        )
     )

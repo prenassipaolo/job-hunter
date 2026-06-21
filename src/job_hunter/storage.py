@@ -28,6 +28,7 @@ def _role_markdown(job: Job) -> str:
         f"**Score detail:** heuristic {job.fit_score}% · AI {ai}"
         f"{' · page re-checked' if job.page_refetched else ''}  ",
         f"**Career lane:** {job.fit_lane}  ",
+        f"**Manual tier:** {job.tier} (1 = best)  ",
         f"**Reputation:** {_TIER_NAME.get(tier, 'Unrecognised')} (tier {tier})  ",
         f"**Location:** {job.location or '—'} ({job.country or 'unknown'}){' · remote' if job.remote else ''}  ",
         f"**Salary:** {job.salary_text}  ",
@@ -85,8 +86,8 @@ def _index_markdown(jobs: list[Job]) -> str:
         "",
         f"{len(jobs)} roles, ranked by estimated fit probability for the persona.",
         "",
-        "| Fit | AI | Company | Role | Lane | Country | Salary | Link |",
-        "| ---: | ---: | --- | --- | --- | --- | --- | --- |",
+        "| Tier | Fit | AI | Company | Role | Lane | Country | Salary | Link |",
+        "| ---: | ---: | ---: | --- | --- | --- | --- | --- | --- |",
     ]
     for j in jobs:
         lane_short = j.fit_breakdown.get("lane_id", "")
@@ -95,7 +96,7 @@ def _index_markdown(jobs: list[Job]) -> str:
         company = j.company.replace("|", "/")
         ai = f"{j.ai_score}%" if j.ai_score is not None else "—"
         lines.append(
-            f"| {_display_score(j)}% | {ai} | {company} | {title} | {lane_short} | "
+            f"| {j.tier} | {_display_score(j)}% | {ai} | {company} | {title} | {lane_short} | "
             f"{j.country or '—'} | {j.salary_text} | {link} |"
         )
     lines.append("")

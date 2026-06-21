@@ -25,5 +25,8 @@ data/personas/*.yaml
 data/work/
 data/roles/
 
+# Manual job-tier sidecars (your personal curation). Local only.
+data/tiers/
+
 # Local-only learning notes / personal scratch material — never committed.
 learning/

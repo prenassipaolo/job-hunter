@@ -82,18 +82,20 @@ def _show(jobs):
         console.print("[yellow]No roles. Try --include-unknown, --anywhere, or lower --prescreen-min.[/]")
         return
     table = Table(title="Top roles by fit")
-    for col in ("Fit", "AI", "Company", "Role", "Country", "Salary"):
-        table.add_column(col, justify="right" if col in ("Fit", "AI") else "left")
+    for col in ("Tier", "Fit", "AI", "Company", "Role", "Country", "Salary"):
+        table.add_column(col, justify="right" if col in ("Tier", "Fit", "AI") else "left")
     for j in jobs[:25]:
         ai = f"{j.ai_score}%" if j.ai_score is not None else "—"
-        table.add_row(f"{j.final_score or j.fit_score}%", ai, j.company, j.title[:42], j.country or "—", j.salary_text)
+        table.add_row(str(j.tier), f"{j.final_score or j.fit_score}%", ai, j.company,
+                      j.title[:42], j.country or "—", j.salary_text)
     console.print(table)
 
 
-def _resolve(args) -> tuple[str, str, str]:
-    """Turn --persona / --profile into (profile_path, work_dir, out_dir).
+def _resolve(args) -> tuple[str, str, str, str]:
+    """Turn --persona / --profile into (profile_path, work_dir, out_dir, tiers_path).
 
-    Each persona gets its own work + output dirs so results are stored per persona.
+    Each persona gets its own work + output dirs (and manual-tier sidecar) so results
+    and curation are stored per persona.
     """
     profile = getattr(args, "profile", None)
     if profile:
@@ -110,7 +112,8 @@ def _resolve(args) -> tuple[str, str, str]:
         raise SystemExit(2)
     work = Path(getattr(args, "work", None) or DATA / "work" / persona_id)
     out = Path(getattr(args, "out", None) or DATA / "roles" / persona_id)
-    return str(profile_path), str(work), str(out)
+    tiers_path = DATA / "tiers" / f"{persona_id}.json"
+    return str(profile_path), str(work), str(out), str(tiers_path)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -120,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd is None:  # bare `job-hunter` -> full run with defaults
         args = parser.parse_args(list(argv or []) + ["run"])
     cmd = args.cmd
-    profile_path, work, out = _resolve(args)
+    profile_path, work, out, tiers_path = _resolve(args)
 
     if cmd == "collect":
         collect(CollectConfig(
@@ -134,7 +137,10 @@ def main(argv: list[str] | None = None) -> int:
             refetch_pages=not args.no_refetch, use_llm=args.llm,
         ))
     elif cmd == "rank":
-        jobs = rank(RankConfig(work_dir=work, out_dir=out, final_min=args.final_min, top_n=args.top))
+        jobs = rank(RankConfig(
+            work_dir=work, out_dir=out, final_min=args.final_min, top_n=args.top,
+            tiers_path=tiers_path,
+        ))
         _show(jobs)
     else:  # run
         jobs = run(RunConfig(
@@ -142,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
             reputable_only=not args.include_unknown, countries_only=not args.anywhere,
             role_gate=not args.no_role_gate, prescreen_min=args.prescreen_min,
             enrich_top=args.enrich_top, refetch_pages=not args.no_refetch, use_llm=args.llm,
-            final_min=args.final_min, top_n=args.top,
+            final_min=args.final_min, top_n=args.top, tiers_path=tiers_path,
         ))
         _show(jobs)
     return 0

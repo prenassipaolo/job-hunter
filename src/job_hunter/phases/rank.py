@@ -16,6 +16,7 @@ from rich.console import Console
 from job_hunter.models import Job
 from job_hunter.scoring.heuristic import label_for
 from job_hunter.storage import write_results
+from job_hunter.tiers import apply_overrides, load_overrides
 
 console = Console()
 
@@ -29,6 +30,7 @@ class RankConfig:
     out_dir: str
     final_min: int = 0
     top_n: int = 60
+    tiers_path: str = ""  # sidecar of manual job tiers; "" = none
 
 
 def _blend(job: Job) -> int:
@@ -47,8 +49,13 @@ def rank(cfg: RankConfig) -> list[Job]:
         job.final_score = _blend(job)
         job.fit_label = label_for(job.final_score)
 
+    # Manual job tiers (1 = best) win over fit: a promoted role floats to the top.
+    # Untouched jobs all share the lowest tier, so this is a no-op until you curate.
+    if cfg.tiers_path:
+        apply_overrides(jobs, load_overrides(cfg.tiers_path))
+
     jobs = [j for j in jobs if j.final_score >= cfg.final_min]
-    jobs.sort(key=lambda j: j.final_score, reverse=True)
+    jobs.sort(key=lambda j: (j.tier, -j.final_score))
     jobs = jobs[: cfg.top_n]
 
     run_dir = write_results(jobs, cfg.out_dir)
