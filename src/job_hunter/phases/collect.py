@@ -15,6 +15,7 @@ from pathlib import Path
 
 from rich.console import Console
 
+from job_hunter.locations import country_tier
 from job_hunter.models import Job
 from job_hunter.profile import Profile
 from job_hunter.providers import ALL_PROVIDERS
@@ -54,7 +55,9 @@ def passes_role_gate(title: str, profile: Profile) -> bool:
 
 
 def _keep_location(job: Job, profile: Profile) -> bool:
-    return job.country in profile.target_countries or (job.remote and profile.remote_ok)
+    # Keep any tiered country (1=best..4) or remote — tier only affects ranking, so
+    # tier 2-4 countries (Germany, Italy, US, ...) appear too, just lower down.
+    return country_tier(job.country) > 0 or (job.remote and profile.remote_ok)
 
 
 def _dedup(jobs: list[Job]) -> list[Job]:

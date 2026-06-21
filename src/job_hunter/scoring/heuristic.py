@@ -8,6 +8,7 @@ Every component is explainable so the numbers can be sanity-checked and retuned.
 
 from __future__ import annotations
 
+from job_hunter.locations import location_score
 from job_hunter.models import Job
 from job_hunter.profile import Lane, Profile
 from job_hunter.reputation import reputation_points
@@ -71,16 +72,9 @@ def score_job(job: Job, profile: Profile) -> Job:
     score += skill_pts
     breakdown["skills"] = skill_pts
 
-    # 3) Location / country fit.
-    loc_pts = 0
-    if job.country in profile.target_countries:
-        loc_pts = 12
-    elif job.remote and profile.remote_ok:
-        loc_pts = 6  # remote is workable but on-the-ground in a target country is better
-    elif not job.country:
-        loc_pts = 2  # unknown — don't punish too hard
-    else:
-        loc_pts = -22  # a concrete location outside the target set is a near-blocker
+    # 3) Location fit — country/city tiers (1 = best). All geo logic lives in
+    #    locations.py; here we just add the points it returns.
+    loc_pts, loc_detail = location_score(job.country, job.location, job.remote, profile.remote_ok)
     score += loc_pts
     breakdown["location"] = loc_pts
 
@@ -117,5 +111,6 @@ def score_job(job: Job, profile: Profile) -> Job:
         "negative_hits": neg,
         "lane_id": lane.id,
         "reputation_tier": rep_tier,
+        "location_tier": loc_detail.get("location_tier", 0),
     }
     return job
