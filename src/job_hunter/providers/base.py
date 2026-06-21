@@ -8,11 +8,25 @@ from job_hunter.models import Job
 from job_hunter.profile import Profile
 
 # Map of country -> substrings that, if found in a location string, imply it.
+# Country -> substrings that, if found in a location string, imply it. Keys must match
+# the country names used in locations.COUNTRY_TIERS. Prefer long, unambiguous tokens:
+# a bare "us"/"gent" would false-match ("business"/"Argentina"), so we rely on city
+# names + full country names instead.
 COUNTRY_HINTS: dict[str, list[str]] = {
     "Switzerland": ["switzerland", "zurich", "zürich", "geneva", "genève", "basel", "lausanne", "zug", " ch", "bern"],
     "Ireland": ["ireland", "dublin", "cork", "galway", "limerick"],
     "Netherlands": ["netherlands", "amsterdam", "utrecht", "rotterdam", "the hague", "den haag", "eindhoven", "holland", "nl"],
     "United Kingdom": ["united kingdom", "uk", "england", "london", "manchester", "edinburgh", "cambridge", "scotland", "wales", "bristol", "leeds", "glasgow"],
+    "Germany": ["germany", "deutschland", "berlin", "munich", "münchen", "frankfurt", "hamburg", "cologne", "köln", "stuttgart", "düsseldorf", "dusseldorf"],
+    "Luxembourg": ["luxembourg"],
+    "Sweden": ["sweden", "stockholm", "gothenburg", "göteborg", "malmö"],
+    "Denmark": ["denmark", "copenhagen", "københavn", "aarhus"],
+    "Italy": ["italy", "italia", "milan", "milano", "rome", "roma", "turin", "torino", "bologna", "florence"],
+    "Spain": ["spain", "españa", "espana", "madrid", "barcelona", "valencia", "seville", "sevilla", "málaga"],
+    "Austria": ["austria", "vienna", "wien", "graz", "linz", "salzburg"],
+    "Belgium": ["belgium", "brussels", "bruxelles", "antwerp", "antwerpen", "ghent", "leuven"],
+    "Portugal": ["portugal", "lisbon", "lisboa", "porto"],
+    "United States": ["united states", "usa", "new york", "san francisco", "bay area", "seattle", "boston", "austin", "chicago", "los angeles", "denver", "atlanta", "california", "texas"],
 }
 
 
