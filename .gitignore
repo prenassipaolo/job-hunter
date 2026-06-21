@@ -24,3 +24,6 @@ data/personas/*.yaml
 # Generated artifacts (phase JSON + per-persona role files). Local only.
 data/work/
 data/roles/
+
+# Local-only learning notes / personal scratch material — never committed.
+learning/
