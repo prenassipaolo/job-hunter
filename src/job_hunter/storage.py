@@ -54,18 +54,19 @@ def _role_markdown(job: Job) -> str:
             lines += ["**Cons**", *[f"- {c}" for c in cons], ""]
         if b.get("llm_learning"):
             lines += [f"**Learning potential:** {b['llm_learning']}", ""]
-    # Weighted feature contributions to z (logistic input). Higher = pushed the score up.
-    feats = b.get("features", {})
+    # Each feature is a 0-1 score; contributions sum (with a bias) into z -> logistic.
     lines += ["## Why this score", "",
-              "Score = logistic(z); each row is a category's contribution to z.", "",
-              "| Category | Feature | Contribution to z |", "| --- | ---: | ---: |"]
-    for key in ("knowledge", "lane", "location", "seniority", "stretch", "reputation", "recency", "negatives"):
-        if key in b:
-            lines.append(f"| {key} | {feats.get(key, 0):+.2f} | {b[key]:+.2f} |")
-    if "bias" in b:
-        lines.append(f"| bias | | {b['bias']:+.2f} |")
-    lines.append(f"| **z (total)** | | **{b.get('z', 0):+.2f}** |")
-    lines.append(f"| **fit score** | | **{job.fit_score}%** |")
+              "Each feature scores 0–1; score = logistic(bias + Σ weight·value).", "",
+              "| Feature | Value | Weight | Contribution | Source |",
+              "| --- | ---: | ---: | ---: | --- |"]
+    for c in b.get("components", []):
+        flag = " (default)" if c.get("default") else ""
+        lines.append(
+            f"| {c['label']} | {c['value']:.2f} | {c['weight']:.1f} | "
+            f"{c['contribution']:+.2f} | {c['source']}{flag} |"
+        )
+    lines.append(f"| **z (total)** | | | **{b.get('z', 0):+.2f}** | |")
+    lines.append(f"| **fit score** | | | **{job.fit_score}%** | |")
     lines.append("")
     if matched:
         lines += ["## Matched skills", ""]

@@ -4,12 +4,12 @@ from job_hunter.models import Job
 from job_hunter.phases.enrich import _ai_worthy
 
 
-def _job(fit: int, **feature_overrides) -> Job:
+def _job(fit: int, *, stretch: bool = False, **feature_overrides) -> Job:
     j = Job(source="t", title="x", company="c", url="u")
     j.fit_score = fit
-    features = {"knowledge": 0.5, "location": 0.8, "stretch": 0.0}
+    features = {"skills": 0.5, "location": 0.8}
     features.update(feature_overrides)
-    j.fit_breakdown = {"features": features}
+    j.fit_breakdown = {"features": features, "stretch": stretch}
     return j
 
 
@@ -21,13 +21,13 @@ def test_below_floor_is_skipped():
     assert not _ai_worthy(_job(40), 50)
 
 
-def test_no_knowledge_overlap_is_skipped():
-    assert not _ai_worthy(_job(85, knowledge=0.0), 50)
+def test_no_skill_overlap_is_skipped():
+    assert not _ai_worthy(_job(85, skills=0.0), 50)
 
 
 def test_outside_location_is_skipped():
-    assert not _ai_worthy(_job(85, location=-0.6), 50)
+    assert not _ai_worthy(_job(85, location=0.05), 50)
 
 
 def test_stretch_title_is_skipped():
-    assert not _ai_worthy(_job(85, stretch=-1.0), 50)
+    assert not _ai_worthy(_job(85, stretch=True), 50)

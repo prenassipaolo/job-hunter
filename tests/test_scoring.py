@@ -88,4 +88,5 @@ def test_ai_research_scores_lower_than_applied_quant():
 def test_intern_is_penalised():
     job = _job(title="Data Science Intern", company="Google", country="Ireland", description="Python")
     score_job(job, PROFILE)
-    assert job.fit_breakdown["seniority"] < 0
+    # Seniority is now a 0-1 feature; an intern title scores low on it.
+    assert job.fit_breakdown["features"]["seniority"] < 0.3

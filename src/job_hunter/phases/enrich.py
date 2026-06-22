@@ -44,11 +44,11 @@ def _ai_worthy(job: Job, min_fit: int) -> bool:
     if job.fit_score < min_fit:
         return False
     f = job.fit_breakdown.get("features", {})
-    if f.get("knowledge", 1.0) < 0.10:   # essentially no overlap with the toolkit
+    if f.get("skills", 1.0) < 0.10:      # essentially no overlap with the toolkit
         return False
-    if f.get("location", 1.0) < 0.0:     # concrete location outside every tiered country
+    if f.get("location", 1.0) < 0.10:    # concrete location outside every tiered country
         return False
-    if f.get("stretch", 0.0) < 0.0:      # aspirational title (e.g. research scientist)
+    if job.fit_breakdown.get("stretch"):  # aspirational title (e.g. research scientist)
         return False
     return True
 
