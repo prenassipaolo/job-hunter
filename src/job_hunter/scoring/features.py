@@ -46,19 +46,26 @@ BY_NAME = {f.name: f for f in FEATURES}
 BIAS = -6.3
 
 
-def combine(values: dict[str, float]) -> tuple[int, float, list[dict]]:
-    """Combine feature values into (score 0-100, z, per-feature components)."""
+def combine(values: dict[str, float], weights: dict[str, float] | None = None) -> tuple[int, float, list[dict]]:
+    """Combine feature values into (score 0-100, z, per-feature components).
+
+    ``weights`` optionally overrides per-feature weights (a persona's personal emphasis);
+    any feature not overridden keeps its registry default. The mechanism (logistic, bias)
+    stays fixed in code — only the personal emphasis is configurable.
+    """
+    weights = weights or {}
     z = BIAS
     components: list[dict] = []
     for f in FEATURES:
+        weight = float(weights.get(f.name, f.weight))
         raw = values.get(f.name)
         used_default = raw is None
         v = f.default if used_default else max(0.0, min(1.0, float(raw)))
-        contribution = f.weight * v
+        contribution = weight * v
         z += contribution
         components.append({
             "name": f.name, "label": f.label, "source": f.source,
-            "value": round(v, 3), "weight": f.weight,
+            "value": round(v, 3), "weight": weight,
             "contribution": round(contribution, 3), "default": used_default,
         })
     score = round(100 / (1 + math.exp(-z)))

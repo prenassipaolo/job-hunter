@@ -128,7 +128,7 @@ def score_job(job: Job, profile: Profile) -> Job:
     values, detail, lane = objective_features(job, profile)
     values.update(job.ai_features or {})  # AI subjective scores override their defaults
 
-    score, z, components = combine(values)
+    score, z, components = combine(values, profile.weights)
     # Preserve the LLM overview (pros/cons/etc.) across a re-score — it lives under llm_*.
     preserved = {k: v for k, v in (job.fit_breakdown or {}).items() if k.startswith("llm_")}
     job.fit_score = score
