@@ -103,7 +103,7 @@ uv run job-hunter rank --persona jordan
 Copy `.env.example` to `.env` and fill in what you have (all optional):
 
 - **`ANTHROPIC_API_KEY`** — enables the default Claude Haiku enrichment (fit notes + salary inference; `--no-llm` to skip).
-- **`ADZUNA_APP_ID` / `ADZUNA_APP_KEY`** — adds Adzuna (best CH/IE/NL/UK + salary).
+- **`ADZUNA_APP_ID` / `ADZUNA_APP_KEY`** — adds Adzuna (best on-the-ground coverage of your target countries + salary).
 
 `.env` is git-ignored.
 

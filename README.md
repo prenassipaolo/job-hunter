@@ -1,10 +1,14 @@
 # job-hunter
 
 A **persona-driven** job hunter. You describe a candidate once — in an anonymised
-`persona` file — and the tool finds high-fit roles across **Switzerland, Ireland, the
-Netherlands and the UK**, scores how strong a candidate the persona is for each one, and
-writes a file per role with the link, salary range (when available) and an estimated
-**fit probability**.
+`persona` file — and the tool finds high-fit roles in the **countries you choose**,
+scores how strong a candidate the persona is for each one, and writes a file per role
+with the link, salary range (when available) and an estimated **fit probability**.
+
+Where roles are searched and how locations rank is fully configurable — countries and
+cities are tiered (1 = best) in `src/job_hunter/locations.py`. It ships tuned for
+**Switzerland, Ireland, the Netherlands and the UK** (tier 1), with Germany, Italy, the
+US and more at lower tiers; edit `COUNTRY_TIERS` / `CITY_TIERS` to make it yours.
 
 It only keeps **reputable employers** — top trading firms, big tech, serious fintech
 and well-regarded banks/research labs — the kind of places with real room to learn and
@@ -28,20 +32,25 @@ chained. Cheap fixed rules do the bulk filtering first; the AI only ever looks a
 small, clean survivor set.
 
 ```
-Phase 1  collect   free job APIs ─▶ dedup ─▶ location gate (CH/IE/NL/UK/remote)
-                    ─▶ reputation gate ─▶ role-type gate (dev/quant/DS only)
+Phase 1  collect   free job APIs ─▶ dedup ─▶ location gate (tiered countries/remote)
+                    ─▶ reputation gate ─▶ role-type gate (from the persona's lanes)
                     ─▶ prescreen heuristic score        ──▶ phase1_candidates.json
-Phase 2  enrich     re-fetch each live page ─▶ Claude Haiku extracts salary/seniority
-                    & scores fit (heuristic fallback if no key)  ──▶ phase2_enriched.json
-Phase 3  rank       blend heuristic + AI ─▶ sort  ──▶ roles/*.md + index.md + roles.json
+Phase 2  enrich     re-fetch each live page ─▶ Claude Haiku scores subjective features
+                    (responsibilities, interest) + salary  ──▶ phase2_enriched.json
+Phase 3  rank       re-score with AI features ─▶ sort  ──▶ roles/*.md + index.md + roles.json
 ```
+
+Scoring is one **logistic** over weighted features (`src/job_hunter/scoring/features.py`):
+the heuristic fills objective features (skills overlap, location, recency, …) for every
+job; the LLM fills subjective ones (responsibilities, interest) for the worthy few. Both
+feed the same score, so it's bounded 0–100 and fully explainable in each role file.
 
 - **Sources (no API key needed):** TheMuse, RemoteOK, Arbeitnow, Jobicy, and **ats**
   — company career boards (Greenhouse / Lever / Ashby) pulled directly from your
   curated reputable employers (Point72, IMC, OpenAI, Stripe, Datadog, Celonis, …).
   Edit the board list in `src/job_hunter/providers/ats.py`.
-- **Source (optional key):** Adzuna — best salary + CH/IE/NL/UK coverage. Add free
-  keys in `.env` and it switches on automatically.
+- **Source (optional key):** Adzuna — best salary + on-the-ground coverage for your
+  target countries. Add free keys in `.env` and it switches on automatically.
 - **Scoring is hybrid:** a transparent offline heuristic plus **Claude Haiku**
   enrichment (cheapest model) on the top roles for a candid fit note and salary
   inference. The LLM runs **by default** in the full flow (results are cached); pass
@@ -50,11 +59,12 @@ Phase 3  rank       blend heuristic + AI ─▶ sort  ──▶ roles/*.md + ind
 ### What the fit score means
 
 A 0–100 estimate of how strong a candidate the persona is for the role — roughly the
-chance of clearing the CV screen into an interview. It is a heuristic proxy, not a promise.
-Every role file shows the full point breakdown (lane relevance, skills, location,
-seniority, negatives, reputation) so you can sanity-check and retune it.
+chance of clearing the CV screen into an interview. It is a model output, not a promise.
+Each role file shows every **feature** (skills overlap, title fit, location, seniority,
+reputation, recency, no-wrong-stack, and — once enriched — the AI's responsibilities &
+interest scores) with its weight and contribution, so you can sanity-check and retune it.
 
-Bands: **Strong ≥70 · Good ≥55 · Moderate ≥40 · Stretch <40**.
+Bands: **Strong ≥80 · Good ≥62 · Moderate ≥42 · Stretch <42**.
 
 ## Setup
 
@@ -72,7 +82,7 @@ Pick a persona with `--persona <id>` (defaults to `example`). It works before or
 the subcommand. Make your own first: `cp data/personas/_template.yaml data/personas/<id>.yaml`.
 
 ```bash
-# Run all three phases for a persona (keyless sources, reputable employers, CH/IE/NL/UK + remote)
+# Run all three phases for a persona (keyless sources, reputable employers, tiered countries + remote)
 uv run job-hunter run --persona example
 
 # Run phases individually — each reads the previous artifact from data/work/<persona>/
@@ -126,13 +136,17 @@ job-hunter/
 └── tests/
 ```
 
-## Tuning it
+## Customise your search — where to edit what
 
-- **Add/remove target companies:** edit the tiers in `src/job_hunter/reputation.py`.
-- **Reweight scoring:** edit the constants in `src/job_hunter/scoring/heuristic.py`
-  and the skill/lane lists in your persona file under `data/personas/`.
-- **Add a job source:** drop a `Provider` subclass in `src/job_hunter/providers/`
-  and register it in `providers/__init__.py`.
+- **Who you are (skills, lanes, seniority, stretch titles):** your persona file in
+  `data/personas/`. This is the biggest lever — skills overlap dominates the score.
+- **Which countries/cities, and how they rank:** `COUNTRY_TIERS` / `CITY_TIERS` in
+  `src/job_hunter/locations.py` (1 = best; e.g. `"Switzerland": 1`). The location *gate*
+  keeps any tiered country (or remote); tier only affects ranking.
+- **Which employers count as reputable:** the tiers in `src/job_hunter/reputation.py`.
+- **Feature weights / the scoring model:** `src/job_hunter/scoring/features.py`.
+- **Add a job source:** a `Provider` subclass in `src/job_hunter/providers/`, registered
+  in `providers/__init__.py`.
 - **Add a company board:** append an `(ats, slug, name)` row to `BOARDS` in
   `providers/ats.py`. A wrong slug just returns nothing — no harm in trying one.
 
@@ -141,7 +155,7 @@ job-hunter/
 - This scrapes public/free job APIs, not LinkedIn (LinkedIn's terms forbid scraping
   and it rarely exposes salary). The provider interface makes adding sources easy.
 - Keyless remote APIs skew toward remote/tech roles; **Adzuna keys** materially
-  improve on-the-ground CH/IE/NL/UK coverage and salary data — worth the 2-minute
-  signup.
+  improve on-the-ground coverage of your target countries and salary data — worth the
+  2-minute signup.
 - The reputation list is curated and finite; a great employer it doesn't know yet will
   be filtered out until you add it. Use `--include-unknown` to inspect the long tail.
