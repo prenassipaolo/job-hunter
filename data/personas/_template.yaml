@@ -31,16 +31,14 @@ name: <Display Name>
 # Where you're based, free text. Used by the LLM enrichment for context only.
 based_in: <City, Country>
 
-# Optional (default: none). Informational; location ranking uses the global tiers in
-# locations.py. List the countries you care about for your own reference.
-target_countries: [Switzerland, Ireland, Netherlands, "United Kingdom"]
-
-# City hints for location-aware providers (TheMuse). "City, Country" format.
+# Optional. City query seeds for location-based providers (TheMuse) — i.e. where to
+# FETCH jobs. "City, Country" format. Ranking is set by country_tiers/city_tiers below,
+# not here. (Scope = the countries in country_tiers; this just seeds one provider.)
 target_cities:
   - "<City, Country>"
   - "<City, Country>"
 
-# Whether remote roles outside the target countries are acceptable.
+# Whether remote roles outside your tiered countries are acceptable.
 remote_ok: true
 
 # *** THE ONLY HARD REQUIREMENT *** The career lanes you can credibly target (1-4).
@@ -98,3 +96,11 @@ country_tiers:
 city_tiers:
   # amsterdam: 1
   # utrecht: 2
+
+# OPTIONAL. Your personal emphasis: override how much each scoring feature counts. Omit
+# to use the defaults in src/job_hunter/scoring/features.py. Higher = matters more.
+# Features: skills, title_fit, location, seniority, reputation, recency, stack_fit,
+# responsibilities, interest.
+weights:
+  # skills: 3.0      # care more about skill overlap
+  # location: 0.5    # care less where it is

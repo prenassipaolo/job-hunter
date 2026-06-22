@@ -5,9 +5,8 @@
 id: example
 name: Alex Doe
 based_in: Amsterdam, Netherlands
-# Countries we actually want roles in. Anything else is penalised heavily.
-target_countries: [Switzerland, Ireland, Netherlands, "United Kingdom"]
-# City hints used to query location-aware providers (TheMuse).
+# City query seeds for location-based providers (TheMuse). Where to FETCH from — ranking
+# is controlled separately by country_tiers / city_tiers below.
 target_cities:
   - "Amsterdam, Netherlands"
   - "Zurich, Switzerland"
@@ -94,3 +93,8 @@ country_tiers:
 # Optional per-city overrides (lowercase). A city tier beats its country tier, so you can
 # rank cities within/across countries (e.g. prefer the hub over the capital).
 city_tiers: {}
+
+# Optional per-feature weight overrides (your personal emphasis). Omit to use the defaults
+# in scoring/features.py. Higher = matters more. Feature names: skills, title_fit,
+# location, seniority, reputation, recency, stack_fit, responsibilities, interest.
+weights: {}

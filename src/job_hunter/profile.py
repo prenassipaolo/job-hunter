@@ -38,8 +38,7 @@ class Profile:
     id: str
     name: str
     based_in: str
-    target_countries: list[str]
-    target_cities: list[str]
+    target_cities: list[str]  # "City, Country" query seeds for location-based providers (TheMuse)
     remote_ok: bool
     lanes: list[Lane]
     skills: dict[str, list[str]]
@@ -47,8 +46,9 @@ class Profile:
     negative_signals: list[str]
     role_gate: dict[str, list[str]]
     stretch_titles: list[str]  # aspirational titles to penalise (e.g. "research scientist")
-    country_tiers: dict[str, int]  # personal: country -> tier (1=best)
+    country_tiers: dict[str, int]  # personal: country -> tier (1=best); also defines scope
     city_tiers: dict[str, int]  # personal: city -> tier override (1=best)
+    weights: dict[str, float]  # personal: per-feature weight overrides (empty = defaults)
 
     @classmethod
     def load(cls, path: str | Path) -> "Profile":
@@ -83,7 +83,6 @@ class Profile:
             id=data.get("id") or stem,
             name=data.get("name") or data.get("id") or stem,
             based_in=data.get("based_in", ""),
-            target_countries=data.get("target_countries", []),
             target_cities=data.get("target_cities", []),
             remote_ok=data.get("remote_ok", True),
             lanes=lanes,
@@ -96,6 +95,7 @@ class Profile:
             # Personal location prefs; fall back to the shipped defaults when omitted.
             country_tiers=data.get("country_tiers") or dict(DEFAULT_COUNTRY_TIERS),
             city_tiers=data.get("city_tiers") or dict(DEFAULT_CITY_TIERS),
+            weights=data.get("weights") or {},
         )
 
     @property

@@ -97,7 +97,12 @@ def _collapse_variants(jobs: list[Job], profile: Profile) -> list[Job]:
         if len(grp) == 1:
             result.append(grp[0])
             continue
-        rep = max(grp, key=lambda j: (j.country in profile.target_countries, j.remote))
+        # Keep the variant in the best-tier country (tier 1 wins), then a remote one.
+        def _loc_goodness(j: Job) -> tuple[int, bool]:
+            t = country_tier(j.country, profile.country_tiers)
+            return (5 - t if t else 0, j.remote)
+
+        rep = max(grp, key=_loc_goodness)
         locs: list[str] = []
         for j in grp:
             if j.location and j.location not in locs:

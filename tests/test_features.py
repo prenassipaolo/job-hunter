@@ -22,6 +22,14 @@ def test_missing_values_use_defaults():
     assert all(c["default"] for c in components)
 
 
+def test_persona_weights_override():
+    base, _, _ = combine({"skills": 1.0})
+    heavy, _, comps = combine({"skills": 1.0}, {"skills": 10.0})
+    assert heavy > base  # weighting skills harder raises the score
+    skills = next(c for c in comps if c["name"] == "skills")
+    assert skills["weight"] == 10.0
+
+
 def _quant() -> Job:
     return Job(source="t", title="Quantitative Developer", company="Optiver",
                url="u", country="Netherlands",

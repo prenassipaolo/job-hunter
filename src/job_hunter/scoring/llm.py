@@ -54,9 +54,10 @@ def available() -> bool:
 
 def _profile_blurb(profile: Profile) -> str:
     lanes = "; ".join(lane.label for lane in profile.lanes)
+    primary = [c for c, t in sorted(profile.country_tiers.items(), key=lambda kv: kv[1]) if t == 1]
     return (
         f"Candidate: {profile.name}, based in {profile.based_in}. "
-        f"Target countries: {', '.join(profile.target_countries)} (remote ok: {profile.remote_ok}). "
+        f"Preferred countries: {', '.join(primary)} (remote ok: {profile.remote_ok}). "
         f"Career lanes: {lanes}. "
         f"Strong skills: {', '.join(profile.skills['strong'])}. "
         f"Learning (not production): {', '.join(profile.skills['learning'])}. "
