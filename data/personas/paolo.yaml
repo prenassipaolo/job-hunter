@@ -5,9 +5,8 @@
 id: paolo
 name: Paolo Prenassi
 based_in: Utrecht, Netherlands
-# Countries we actually want roles in. Anything else is penalised heavily.
-target_countries: [Switzerland, Ireland, Netherlands, "United Kingdom"]
-# City hints used to query location-aware providers (TheMuse).
+# City query seeds for location-based providers (TheMuse). Ranking is set by
+# country_tiers / city_tiers below.
 target_cities:
   - "Amsterdam, Netherlands"
   - "Utrecht, Netherlands"
@@ -154,7 +153,7 @@ skills:
 
 # Seniority Paolo fits. Used to reward good matches and penalise mismatches.
 seniority:
-  fit: ["mid", "medior", "senior", "experienced", "ii", "iii"]
+  fit: ["mid", "medior", "experienced", "ii", "iii"]   # 'senior' removed: not yet a fit
   too_junior: ["intern", "internship", "graduate", "working student", "apprentice", "trainee", "junior"]
   too_senior: ["head of", "director", "vp", "vice president", "chief", "principal", "staff", "lead "]
 
@@ -227,3 +226,40 @@ negative_signals:
     "account manager",
     "recruiter",
   ]
+
+# Aspirational titles Paolo isn't ready for yet (new to AI -> not a research scientist).
+# Research *engineer* is intentionally NOT here (more accessible, applied).
+stretch_titles: ["research scientist", "researcher", "ai researcher", "phd"]
+
+# Personal location preferences (1 = best).
+country_tiers:
+  Switzerland: 1
+  Ireland: 1
+  Netherlands: 1
+  United Kingdom: 1
+  Germany: 2
+  Luxembourg: 2
+  Sweden: 3
+  Denmark: 3
+  Italy: 3
+  Spain: 3
+  Austria: 3
+  Belgium: 3
+  Portugal: 4
+  United States: 4
+
+# Per-city overrides (lowercase) — Paolo's stated preferences.
+city_tiers:
+  amsterdam: 1
+  utrecht: 2
+  rotterdam: 2
+  zurich: 1
+  geneva: 2
+  zug: 1
+  milan: 3
+  rome: 4
+  berlin: 2
+  munich: 2
+  madrid: 3
+  barcelona: 3
+  london: 1
