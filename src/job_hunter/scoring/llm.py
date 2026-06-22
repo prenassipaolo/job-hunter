@@ -17,13 +17,19 @@ from job_hunter.models import Job
 from job_hunter.profile import Profile
 
 MODEL = "claude-haiku-4-5"  # cheapest current model — matches the persona's "less tokens" ask
+# Bump when the prompt/schema below changes — it's part of the cache key, so a bump
+# invalidates stale cached answers (see phases/enrich.py).
+PROMPT_VERSION = "2"
 
 _SYSTEM = """You are a blunt, experienced tech recruiter helping a specific candidate.
 You will receive the candidate's profile and one job posting. Judge how strong a
 candidate THIS person is for THIS role and reply with STRICT JSON:
 {
   "fit_score": <integer 0-100: realistic chance of clearing the CV screen into an interview>,
-  "fit_note": "<=40 words, candid: why this fits or doesn't for THIS candidate>",
+  "fit_note": "<=35 words, candid one-line verdict for THIS candidate>",
+  "pros": ["<=12 words each, up to 3 concrete reasons this is a good match>"],
+  "cons": ["<=12 words each, up to 3 concrete risks/gaps for THIS candidate>"],
+  "learning_potential": "<=25 words: what they'd genuinely learn/grow here, or 'limited'>",
   "salary_min": <number or null>,
   "salary_max": <number or null>,
   "salary_currency": "<ISO code or empty>",
@@ -31,7 +37,7 @@ candidate THIS person is for THIS role and reply with STRICT JSON:
   "seniority_read": "<too_junior|fits|too_senior|unclear>",
   "reputation_read": "<strong|moderate|unknown — is this a place to learn and grow?>"
 }
-Only output the JSON object, nothing else."""
+Be honest: empty pros/cons lists are fine. Only output the JSON object, nothing else."""
 
 
 def available() -> bool:
@@ -107,6 +113,9 @@ def apply(job: Job, data: dict) -> None:
         job.salary_period = data.get("salary_period", "") or job.salary_period
     job.fit_breakdown["llm_seniority_read"] = data.get("seniority_read", "")
     job.fit_breakdown["llm_reputation_read"] = data.get("reputation_read", "")
+    job.fit_breakdown["llm_pros"] = data.get("pros") or []
+    job.fit_breakdown["llm_cons"] = data.get("cons") or []
+    job.fit_breakdown["llm_learning"] = data.get("learning_potential", "")
 
 
 def enrich(jobs: list[Job], profile: Profile) -> list[Job]:

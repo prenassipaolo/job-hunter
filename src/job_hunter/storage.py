@@ -46,7 +46,14 @@ def _role_markdown(job: Job) -> str:
         "",
     ]
     if job.notes:
-        lines += ["## Fit note", "", job.notes, ""]
+        lines += ["## AI overview", "", job.notes, ""]
+        pros, cons = b.get("llm_pros", []), b.get("llm_cons", [])
+        if pros:
+            lines += ["**Pros**", *[f"- {p}" for p in pros], ""]
+        if cons:
+            lines += ["**Cons**", *[f"- {c}" for c in cons], ""]
+        if b.get("llm_learning"):
+            lines += [f"**Learning potential:** {b['llm_learning']}", ""]
     # Weighted feature contributions to z (logistic input). Higher = pushed the score up.
     feats = b.get("features", {})
     lines += ["## Why this score", "",

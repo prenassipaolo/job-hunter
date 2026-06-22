@@ -98,7 +98,7 @@ def enrich(cfg: EnrichConfig) -> list[Job]:
             if not _ai_worthy(job, cfg.ai_min):
                 skipped += 1  # no realistic chance -> don't pay to analyse it
                 continue
-            key = hash_key(job.id, job.description[:4000], llm.MODEL)
+            key = hash_key(job.id, job.description[:4000], llm.MODEL, llm.PROMPT_VERSION)
             data = cache.get(key)
             if data is None:
                 data = llm.enrich_one(client, job, blurb)
