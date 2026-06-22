@@ -31,6 +31,26 @@ class EnrichConfig:
     refetch_pages: bool = True
     use_llm: bool = True
     refresh: bool = False  # ignore caches and recompute (re-fetch pages, re-call the LLM)
+    ai_min: int = 50  # don't spend an LLM call on jobs scoring below this (or failing a key feature)
+
+
+def _ai_worthy(job: Job, min_fit: int) -> bool:
+    """Worth an LLM call only if the cheap heuristic gives it a real chance.
+
+    Skip when overall fit is below the floor, or a *critical* feature is a near-blocker:
+    no skill overlap, a location outside all tiers, or an aspirational 'stretch' title.
+    Those jobs can't realistically become a top pick, so paying to analyse them is waste.
+    """
+    if job.fit_score < min_fit:
+        return False
+    f = job.fit_breakdown.get("features", {})
+    if f.get("knowledge", 1.0) < 0.10:   # essentially no overlap with the toolkit
+        return False
+    if f.get("location", 1.0) < 0.0:     # concrete location outside every tiered country
+        return False
+    if f.get("stretch", 0.0) < 0.0:      # aspirational title (e.g. research scientist)
+        return False
+    return True
 
 
 def _load(work_dir: str) -> list[Job]:
@@ -73,8 +93,11 @@ def enrich(cfg: EnrichConfig) -> list[Job]:
         cache = JsonCache(cache_dir / "llm.json", enabled=not cfg.refresh)
         client = llm.make_client()
         blurb = llm.profile_blurb(profile)
-        calls = hits = 0
+        calls = hits = skipped = 0
         for job in head:
+            if not _ai_worthy(job, cfg.ai_min):
+                skipped += 1  # no realistic chance -> don't pay to analyse it
+                continue
             key = hash_key(job.id, job.description[:4000], llm.MODEL)
             data = cache.get(key)
             if data is None:
@@ -87,7 +110,7 @@ def enrich(cfg: EnrichConfig) -> list[Job]:
             if data:
                 llm.apply(job, data)
         cache.save()
-        console.print(f"LLM: {calls} new calls, {hits} from cache")
+        console.print(f"LLM: {calls} new calls, {hits} from cache, {skipped} skipped (not worth it)")
     elif cfg.use_llm:
         console.print("[yellow]LLM requested but unavailable (no key / anthropic) — heuristic only[/]")
 

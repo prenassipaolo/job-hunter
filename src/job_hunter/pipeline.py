@@ -26,6 +26,7 @@ class RunConfig:
     refetch_pages: bool = True
     use_llm: bool = True  # LLM enrichment is the default for the full flow
     refresh: bool = False
+    ai_min: int = 50
     final_min: int = 0
     top_n: int = 60
     tiers_path: str = ""
@@ -53,6 +54,7 @@ def run(cfg: RunConfig) -> list[Job]:
             refetch_pages=cfg.refetch_pages,
             use_llm=cfg.use_llm,
             refresh=cfg.refresh,
+            ai_min=cfg.ai_min,
         )
     )
     return rank(
