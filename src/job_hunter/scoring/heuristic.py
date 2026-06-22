@@ -1,118 +1,147 @@
-"""Transparent, offline fit scorer.
+"""Transparent, naturally-bounded fit scorer.
 
-Produces an estimated 0-100 "fit probability" for the persona plus a breakdown of how it
-was reached. This is a heuristic proxy for *how strong a candidate the persona is for the
-role* (roughly: chance of clearing the CV screen into an interview), not a guarantee.
-Every component is explainable so the numbers can be sanity-checked and retuned.
+Each signal is turned into a normalised **feature** (roughly in [-1, 1]); features are
+combined with per-category **weights** into a single number ``z``, then squashed with a
+logistic (sigmoid). So the score lands in (0, 100) and can *never reach 100* — the bound
+comes from the maths, not an artificial ``min(100)`` cap.
+
+The dominant signal is **knowledge overlap**: a role built on skills the candidate
+actually has scores high; a role centred on skills they only aspire to — or an
+aspirational title like "research scientist" — scores low even when the company and
+location are excellent. (E.g. being new to AI, an AI *research* role won't score well,
+but an applied role using the candidate's real toolkit can.)
+
+Every feature, weight and contribution is recorded in ``fit_breakdown`` so the number
+is fully explainable and tunable.
 """
 
 from __future__ import annotations
 
-from job_hunter.locations import location_score
+import math
+
+from job_hunter.locations import city_tier
 from job_hunter.models import Job
 from job_hunter.profile import Lane, Profile
 from job_hunter.recency import recency_penalty
-from job_hunter.reputation import reputation_points
+from job_hunter.reputation import tier_for
 
-# Weight per matched skill tier (added to the score, then the whole skill block is capped).
-SKILL_WEIGHTS = {"strong": 6, "working": 3, "learning": 2}
-SKILL_CAP = 34
+# Per-category weights. Tuned so an excellent role lands ~z=3 (~95%), a poor one ~z=-2
+# (~12%); knowledge overlap dominates. Edit these to retune the model.
+WEIGHTS = {
+    "knowledge": 2.0,
+    "lane": 1.3,
+    "location": 0.9,
+    "seniority": 1.2,
+    "stretch": 1.6,
+    "reputation": 0.7,
+    "recency": 0.6,
+    "negatives": 1.3,
+}
+BIAS = -1.2
+
+SKILL_WEIGHTS = {"strong": 1.0, "working": 0.5, "learning": 0.15}
+KNOWLEDGE_SAT = 5.0  # strong-equivalent matches that count as "full" knowledge overlap
+
+REPUTATION_FEATURE = {1: 1.0, 2: 0.6, 3: 0.3, 0: 0.0}
+LOCATION_FEATURE = {1: 1.0, 2: 0.65, 3: 0.35, 4: 0.15}
+LOCATION_OUTSIDE = -0.6  # a concrete location in no tiered country
 
 
-def _count_terms(text: str, terms: list[str]) -> list[str]:
+def _hits(text: str, terms: list[str]) -> list[str]:
     low = text.lower()
     return [t for t in terms if t.lower() in low]
 
 
 def _best_lane(job: Job, profile: Profile) -> tuple[Lane, int]:
-    """Pick the lane whose title terms best match this job's title."""
     title = job.title.lower()
     best: tuple[Lane, int] | None = None
     for lane in profile.lanes:
-        hits = sum(1 for t in lane.title_terms if t.lower() in title)
-        if best is None or hits > best[1]:
-            best = (lane, hits)
+        n = sum(1 for t in lane.title_terms if t.lower() in title)
+        if best is None or n > best[1]:
+            best = (lane, n)
     return best  # type: ignore[return-value]
 
 
+def _knowledge_feature(text: str, profile: Profile) -> tuple[float, dict]:
+    """Overlap with the candidate's actual toolkit. Strong skills count fully, working
+    half, learning very little — so a role centred on learning-level skills stays low."""
+    matched: dict[str, list[str]] = {}
+    raw = 0.0
+    for bucket, weight in SKILL_WEIGHTS.items():
+        hit = _hits(text, profile.skills.get(bucket, []))
+        matched[bucket] = hit
+        raw += len(hit) * weight
+    return min(raw / KNOWLEDGE_SAT, 1.0), matched
+
+
+def _location_feature(job: Job, profile: Profile) -> tuple[float, dict]:
+    tier = city_tier(job.location, job.country)
+    if tier:
+        return LOCATION_FEATURE.get(tier, 0.0), {"location_tier": tier}
+    if job.remote and profile.remote_ok:
+        return 0.45, {"location_tier": 0, "remote": True}
+    if not job.country:
+        return 0.2, {"location_tier": 0, "unknown": True}
+    return LOCATION_OUTSIDE, {"location_tier": 0, "outside": True}
+
+
+def _seniority_feature(title: str, profile: Profile) -> float:
+    f = 0.0
+    if _hits(title, profile.seniority.get("too_junior", [])):
+        f -= 1.0
+    if _hits(title, profile.seniority.get("too_senior", [])):
+        f -= 0.8
+    if _hits(title, profile.seniority.get("fit", [])):
+        f += 0.3
+    return max(-1.0, min(0.3, f))
+
+
 def label_for(score: int) -> str:
-    if score >= 70:
+    if score >= 80:
         return "Strong"
-    if score >= 55:
+    if score >= 65:
         return "Good"
-    if score >= 40:
+    if score >= 45:
         return "Moderate"
     return "Stretch"
 
 
 def score_job(job: Job, profile: Profile) -> Job:
-    """Score one job in place and return it. Sets fit_score/label/lane/breakdown."""
-    breakdown: dict[str, int] = {}
-    score = 30  # neutral base — an on-target role builds well above this
-    breakdown["base"] = 30
-
+    """Score one job in place via weighted features + a logistic squash. Bounded (0,100)."""
     text = f"{job.title}\n{job.description}"
+    title = job.title.lower()
 
-    # 1) Lane / title relevance — the strongest signal.
     lane, title_hits = _best_lane(job, profile)
-    lane_pts = min(title_hits * 11, 26)
-    # A description that matches the lane's domain skills even without a title hit still counts.
-    domain_hits = len(_count_terms(job.description, lane.boost_skills))
-    lane_pts += min(domain_hits * 2, 10)
-    score += lane_pts
-    breakdown["lane_relevance"] = lane_pts
+    domain_hits = len(_hits(job.description, lane.boost_skills))
+    f_lane = min(title_hits * 0.5 + domain_hits * 0.1, 1.0)
 
-    # 2) Skill overlap with the persona's toolkit.
-    skill_pts = 0
-    matched: dict[str, list[str]] = {}
-    for tier, terms in profile.skills.items():
-        hits = _count_terms(text, terms)
-        matched[tier] = hits
-        skill_pts += len(hits) * SKILL_WEIGHTS[tier]
-    skill_pts = min(skill_pts, SKILL_CAP)
-    score += skill_pts
-    breakdown["skills"] = skill_pts
-
-    # 3) Location fit — country/city tiers (1 = best). All geo logic lives in
-    #    locations.py; here we just add the points it returns.
-    loc_pts, loc_detail = location_score(job.country, job.location, job.remote, profile.remote_ok)
-    score += loc_pts
-    breakdown["location"] = loc_pts
-
-    # 4) Seniority fit.
-    sen_pts = 0
-    if _count_terms(job.title, profile.seniority["too_junior"]):
-        sen_pts -= 25
-    if _count_terms(job.title, profile.seniority["too_senior"]):
-        sen_pts -= 14
-    if _count_terms(job.title, profile.seniority["fit"]):
-        sen_pts += 6
-    score += sen_pts
-    breakdown["seniority"] = sen_pts
-
-    # 5) Negative signals (wrong stack, hard blockers).
-    neg = _count_terms(text, profile.negative_signals)
-    neg_pts = -8 * len(neg)
-    score += neg_pts
-    breakdown["negatives"] = neg_pts
-
-    # 6) Employer reputation / room to grow — the persona only wants strong, well-known
-    #    companies (trading firms, big tech, serious fintech, reputable banks).
-    rep_tier, rep_pts = reputation_points(job.company)
-    score += rep_pts
-    breakdown["reputation"] = rep_pts
-
-    # 7) Recency — stale postings get a mild, capped penalty (skipped if no date).
+    f_know, matched = _knowledge_feature(text, profile)
+    f_loc, loc_detail = _location_feature(job, profile)
+    f_sen = _seniority_feature(title, profile)
+    f_stretch = -1.0 if _hits(title, profile.stretch_titles) else 0.0
+    rep_tier = tier_for(job.company)
+    f_rep = REPUTATION_FEATURE.get(rep_tier, 0.0)
     rec_pts, rec_detail = recency_penalty(job.posted_at)
-    score += rec_pts
-    breakdown["recency"] = rec_pts
+    f_rec = rec_pts / 10.0  # recency_penalty is 0..-10 -> 0..-1
+    neg = _hits(text, profile.negative_signals)
+    f_neg = -min(len(neg) * 0.5, 1.0)
 
-    score = max(0, min(100, score))
-    job.fit_score = int(round(score))
-    job.fit_label = label_for(job.fit_score)
+    features = {
+        "knowledge": f_know, "lane": f_lane, "location": f_loc, "seniority": f_sen,
+        "stretch": f_stretch, "reputation": f_rep, "recency": f_rec, "negatives": f_neg,
+    }
+    z = BIAS + sum(WEIGHTS[k] * v for k, v in features.items())
+    score = round(100 / (1 + math.exp(-z)))
+
+    job.fit_score = score
+    job.fit_label = label_for(score)
     job.fit_lane = lane.label
     job.fit_breakdown = {
-        **breakdown,
+        "z": round(z, 3),
+        "bias": BIAS,
+        # contribution of each category to z (weight * feature), most explainable view:
+        **{k: round(WEIGHTS[k] * v, 3) for k, v in features.items()},
+        "features": {k: round(v, 3) for k, v in features.items()},
         "matched_skills": {k: v for k, v in matched.items() if v},
         "negative_hits": neg,
         "lane_id": lane.id,

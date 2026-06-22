@@ -72,3 +72,7 @@ negative_signals:
   ["security clearance", "active clearance", "must be a citizen", "fluent german", "10+ years",
    "12+ years", "15+ years", "salesforce", "php", "wordpress", ".net", "c# developer",
    "java developer", "frontend developer", "react developer", "embedded c", "manual tester"]
+
+# Aspirational titles to penalise — roles you'd love but aren't ready for yet (e.g. new
+# to AI -> can't be a research scientist). These get a strong negative in the scorer.
+stretch_titles: ["research scientist", "researcher"]

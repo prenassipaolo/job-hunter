@@ -47,11 +47,18 @@ def _role_markdown(job: Job) -> str:
     ]
     if job.notes:
         lines += ["## Fit note", "", job.notes, ""]
-    lines += ["## Why this score", "", "| Component | Points |", "| --- | ---: |"]
-    for key in ("base", "lane_relevance", "skills", "location", "seniority", "negatives", "reputation", "recency"):
+    # Weighted feature contributions to z (logistic input). Higher = pushed the score up.
+    feats = b.get("features", {})
+    lines += ["## Why this score", "",
+              "Score = logistic(z); each row is a category's contribution to z.", "",
+              "| Category | Feature | Contribution to z |", "| --- | ---: | ---: |"]
+    for key in ("knowledge", "lane", "location", "seniority", "stretch", "reputation", "recency", "negatives"):
         if key in b:
-            lines.append(f"| {key.replace('_', ' ')} | {b[key]:+d} |")
-    lines.append(f"| **total** | **{job.fit_score}** |")
+            lines.append(f"| {key} | {feats.get(key, 0):+.2f} | {b[key]:+.2f} |")
+    if "bias" in b:
+        lines.append(f"| bias | | {b['bias']:+.2f} |")
+    lines.append(f"| **z (total)** | | **{b.get('z', 0):+.2f}** |")
+    lines.append(f"| **fit score** | | **{job.fit_score}%** |")
     lines.append("")
     if matched:
         lines += ["## Matched skills", ""]

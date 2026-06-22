@@ -44,6 +44,7 @@ class Profile:
     seniority: dict[str, list[str]]
     negative_signals: list[str]
     role_gate: dict[str, list[str]]
+    stretch_titles: list[str]  # aspirational titles to penalise (e.g. "research scientist")
 
     @classmethod
     def load(cls, path: str | Path) -> "Profile":
@@ -87,6 +88,7 @@ class Profile:
             seniority={k: seniority.get(k, []) for k in ("fit", "too_junior", "too_senior")},
             negative_signals=data.get("negative_signals", []),
             role_gate=data.get("role_gate") or {"core": [], "exclude": []},
+            stretch_titles=data.get("stretch_titles", []),
         )
 
     @property
