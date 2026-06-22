@@ -7,6 +7,8 @@ from pathlib import Path
 
 import yaml
 
+from job_hunter.locations import DEFAULT_CITY_TIERS, DEFAULT_COUNTRY_TIERS
+
 
 def _validate(data: dict) -> list[str]:
     """Return human-readable problems that block a run (empty list == OK).
@@ -45,6 +47,8 @@ class Profile:
     negative_signals: list[str]
     role_gate: dict[str, list[str]]
     stretch_titles: list[str]  # aspirational titles to penalise (e.g. "research scientist")
+    country_tiers: dict[str, int]  # personal: country -> tier (1=best)
+    city_tiers: dict[str, int]  # personal: city -> tier override (1=best)
 
     @classmethod
     def load(cls, path: str | Path) -> "Profile":
@@ -89,6 +93,9 @@ class Profile:
             negative_signals=data.get("negative_signals", []),
             role_gate=data.get("role_gate") or {"core": [], "exclude": []},
             stretch_titles=data.get("stretch_titles", []),
+            # Personal location prefs; fall back to the shipped defaults when omitted.
+            country_tiers=data.get("country_tiers") or dict(DEFAULT_COUNTRY_TIERS),
+            city_tiers=data.get("city_tiers") or dict(DEFAULT_CITY_TIERS),
         )
 
     @property

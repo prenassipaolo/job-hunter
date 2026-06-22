@@ -9,7 +9,7 @@ from job_hunter.profile import Profile
 
 # Map of country -> substrings that, if found in a location string, imply it.
 # Country -> substrings that, if found in a location string, imply it. Keys must match
-# the country names used in locations.COUNTRY_TIERS. Prefer long, unambiguous tokens:
+# the country names used in locations.DEFAULT_COUNTRY_TIERS. Prefer long, unambiguous tokens:
 # a bare "us"/"gent" would false-match ("business"/"Argentina"), so we rely on city
 # names + full country names instead.
 COUNTRY_HINTS: dict[str, list[str]] = {

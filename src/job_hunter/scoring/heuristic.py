@@ -51,7 +51,7 @@ def _skills_value(text: str, profile: Profile) -> tuple[float, dict]:
 
 
 def _location_value(job: Job, profile: Profile) -> float:
-    tier = city_tier(job.location, job.country)
+    tier = city_tier(job.location, job.country, profile.country_tiers, profile.city_tiers)
     if tier:
         return LOCATION_VALUE.get(tier, 0.3)
     if job.remote and profile.remote_ok:
@@ -112,7 +112,7 @@ def objective_features(job: Job, profile: Profile) -> tuple[dict, dict, Lane]:
         "negative_hits": neg,
         "lane_id": lane.id,
         "reputation_tier": rep_tier,
-        "location_tier": city_tier(job.location, job.country),
+        "location_tier": city_tier(job.location, job.country, profile.country_tiers, profile.city_tiers),
         "stretch": stretch,
         "recency_age_days": rec_detail.get("recency_age_days"),
     }

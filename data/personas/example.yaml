@@ -76,3 +76,21 @@ negative_signals:
 # Aspirational titles to penalise — roles you'd love but aren't ready for yet (e.g. new
 # to AI -> can't be a research scientist). These get a strong negative in the scorer.
 stretch_titles: ["research scientist", "researcher"]
+
+# Personal location preferences (1 = best). Countries you don't list are ignored by the
+# location gate. Omit this whole block to use the shipped defaults (locations.py).
+country_tiers:
+  Switzerland: 1
+  Ireland: 1
+  Netherlands: 1
+  United Kingdom: 1
+  Germany: 2
+  Luxembourg: 2
+  Italy: 3
+  Spain: 3
+  Portugal: 4
+  United States: 4
+
+# Optional per-city overrides (lowercase). A city tier beats its country tier, so you can
+# rank cities within/across countries (e.g. prefer the hub over the capital).
+city_tiers: {}

@@ -83,3 +83,18 @@ negative_signals: ["security clearance", "10+ years", "php", "wordpress", ".net"
 # negative in the scorer. Knowledge-overlap already down-weights skills you lack; this
 # adds an explicit title-level penalty on top.
 stretch_titles: ["research scientist", "researcher"]
+
+# OPTIONAL. Your personal location preferences (1 = best). Omit to use the shipped
+# defaults in src/job_hunter/locations.py. The location gate keeps any country you list
+# here (or remote); the tier only affects ranking.
+country_tiers:
+  Switzerland: 1
+  United Kingdom: 1
+  Germany: 2
+  # add the countries you care about, lower number = more preferred
+
+# OPTIONAL. Per-city overrides (lowercase). A city's tier beats its country's, so you can
+# say e.g. Amsterdam (1) above Utrecht (2), or Milan (3) above Rome (4).
+city_tiers:
+  # amsterdam: 1
+  # utrecht: 2

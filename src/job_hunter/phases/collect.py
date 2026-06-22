@@ -61,7 +61,7 @@ def passes_role_gate(title: str, profile: Profile) -> bool:
 def _keep_location(job: Job, profile: Profile) -> bool:
     # Keep any tiered country (1=best..4) or remote — tier only affects ranking, so
     # tier 2-4 countries (Germany, Italy, US, ...) appear too, just lower down.
-    return country_tier(job.country) > 0 or (job.remote and profile.remote_ok)
+    return country_tier(job.country, profile.country_tiers) > 0 or (job.remote and profile.remote_ok)
 
 
 def _dedup(jobs: list[Job]) -> list[Job]:

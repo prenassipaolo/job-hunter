@@ -1,48 +1,27 @@
-"""Tests for the location-tier model (1 = best)."""
+"""Location tiers are persona-driven (passed in), with city overrides beating country."""
 
-from job_hunter import locations
-from job_hunter.locations import (
-    OUTSIDE_POINTS,
-    REMOTE_POINTS,
-    TIER_POINTS,
-    UNKNOWN_POINTS,
-    city_tier,
-    country_tier,
-    location_score,
-)
+from job_hunter.locations import DEFAULT_COUNTRY_TIERS, city_tier, country_tier
+
+CT = {"Switzerland": 1, "Germany": 2, "Italy": 3, "United States": 4}
 
 
-def test_country_tiers():
-    assert country_tier("Switzerland") == 1
-    assert country_tier("Germany") == 2
-    assert country_tier("Italy") == 3
-    assert country_tier("United States") == 4
-    assert country_tier("Narnia") == 0  # untiered
+def test_country_tier_uses_the_given_map():
+    assert country_tier("Switzerland", CT) == 1
+    assert country_tier("Germany", CT) == 2
+    assert country_tier("Narnia", CT) == 0  # not in this persona's map
 
 
 def test_city_inherits_country_tier_by_default():
-    # With no overrides, every city takes its country's tier.
-    assert city_tier("Amsterdam, Netherlands", "Netherlands") == 1
-    assert city_tier("Munich, Germany", "Germany") == 2
-    assert city_tier("Somewhere, Narnia", "Narnia") == 0
+    assert city_tier("Zurich, Switzerland", "Switzerland", CT, {}) == 1
+    assert city_tier("Munich, Germany", "Germany", CT, {}) == 2
 
 
-def test_city_override_beats_country_tier(monkeypatch):
-    # A per-city override wins over the country tier (here: worse than NL's tier 1).
-    monkeypatch.setitem(locations.CITY_TIERS, "utrecht", 3)
-    assert city_tier("Utrecht, Netherlands", "Netherlands") == 3
-    assert city_tier("Amsterdam, Netherlands", "Netherlands") == 1  # still inherits
+def test_city_override_beats_country_tier():
+    city_tiers = {"geneva": 2}  # Geneva worse than Zurich within tier-1 Switzerland
+    assert city_tier("Geneva, Switzerland", "Switzerland", CT, city_tiers) == 2
+    assert city_tier("Zurich, Switzerland", "Switzerland", CT, city_tiers) == 1
 
 
-def test_location_score_uses_tier_points():
-    pts, detail = location_score("United Kingdom", "London, UK", remote=False, remote_ok=True)
-    assert pts == TIER_POINTS[1]
-    assert detail["location_tier"] == 1
-
-
-def test_location_score_fallbacks():
-    assert location_score("", "", remote=True, remote_ok=True)[0] == REMOTE_POINTS
-    assert location_score("", "", remote=False, remote_ok=True)[0] == UNKNOWN_POINTS
-    assert location_score("Brazil", "São Paulo", remote=False, remote_ok=True)[0] == OUTSIDE_POINTS
-    # A lower-tier country still beats remote-only.
-    assert location_score("Portugal", "Porto", False, True)[0] == TIER_POINTS[4]
+def test_defaults_exist_for_personas_that_omit_tiers():
+    assert DEFAULT_COUNTRY_TIERS["Switzerland"] == 1
+    assert DEFAULT_COUNTRY_TIERS["United States"] == 4
