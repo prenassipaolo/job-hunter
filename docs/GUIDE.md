@@ -86,7 +86,7 @@ the subcommand both work).
 
 ```bash
 # AI enrichment of the top candidates (needs ANTHROPIC_API_KEY in .env)
-uv run job-hunter run --persona jordan --llm --enrich-top 25
+uv run job-hunter run --persona jordan --enrich-top 25   # LLM on by default; add --no-llm to skip
 
 # Cast a wider net
 uv run job-hunter run --persona jordan --prescreen-min 40 --include-unknown --anywhere
@@ -102,7 +102,7 @@ uv run job-hunter rank --persona jordan
 
 Copy `.env.example` to `.env` and fill in what you have (all optional):
 
-- **`ANTHROPIC_API_KEY`** — turns on `--llm` (Claude Haiku fit notes + salary inference).
+- **`ANTHROPIC_API_KEY`** — enables the default Claude Haiku enrichment (fit notes + salary inference; `--no-llm` to skip).
 - **`ADZUNA_APP_ID` / `ADZUNA_APP_KEY`** — adds Adzuna (best CH/IE/NL/UK + salary).
 
 `.env` is git-ignored.

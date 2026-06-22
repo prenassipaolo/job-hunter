@@ -57,44 +57,68 @@ def _profile_blurb(profile: Profile) -> str:
     )
 
 
-def enrich(jobs: list[Job], profile: Profile) -> list[Job]:
-    """Add an LLM fit note and fill missing salary where the model can infer it."""
+def make_client():
+    """Create an Anthropic client (imported lazily so the SDK is only needed with --llm)."""
     import anthropic
 
-    client = anthropic.Anthropic()
-    blurb = _profile_blurb(profile)
-    for job in jobs:
-        user = (
-            f"{blurb}\n\n--- JOB POSTING ---\n"
-            f"Title: {job.title}\nCompany: {job.company}\nLocation: {job.location}\n"
-            f"Known salary: {job.salary_text}\n\nDescription:\n{job.description[:3500]}"
-        )
-        try:
-            resp = client.messages.create(
-                model=MODEL,
-                max_tokens=400,
-                system=_SYSTEM,
-                messages=[{"role": "user", "content": user}],
-            )
-            text = next((b.text for b in resp.content if b.type == "text"), "").strip()
-            data = json.loads(_extract_json(text))
-        except Exception as exc:  # network / parse / api error — never fatal
-            job.notes = f"(LLM enrichment failed: {exc})"
-            continue
+    return anthropic.Anthropic()
 
-        job.notes = data.get("fit_note", "")
-        if data.get("fit_score") is not None:
-            try:
-                job.ai_score = max(0, min(100, int(data["fit_score"])))
-            except (TypeError, ValueError):
-                pass
-        if job.salary_min is None and data.get("salary_min"):
-            job.salary_min = _num(data.get("salary_min"))
-            job.salary_max = _num(data.get("salary_max"))
-            job.salary_currency = data.get("salary_currency", "") or job.salary_currency
-            job.salary_period = data.get("salary_period", "") or job.salary_period
-        job.fit_breakdown["llm_seniority_read"] = data.get("seniority_read", "")
-        job.fit_breakdown["llm_reputation_read"] = data.get("reputation_read", "")
+
+def profile_blurb(profile: Profile) -> str:
+    return _profile_blurb(profile)
+
+
+def enrich_one(client, job: Job, blurb: str) -> dict | None:
+    """One API call for one job. Returns the parsed JSON dict, or None on any failure.
+
+    Pure w.r.t. the job (doesn't mutate it) so the result is cacheable; apply() writes
+    it onto the job afterwards.
+    """
+    user = (
+        f"{blurb}\n\n--- JOB POSTING ---\n"
+        f"Title: {job.title}\nCompany: {job.company}\nLocation: {job.location}\n"
+        f"Known salary: {job.salary_text}\n\nDescription:\n{job.description[:3500]}"
+    )
+    try:
+        resp = client.messages.create(
+            model=MODEL,
+            max_tokens=400,
+            system=_SYSTEM,
+            messages=[{"role": "user", "content": user}],
+        )
+        text = next((b.text for b in resp.content if b.type == "text"), "").strip()
+        return json.loads(_extract_json(text))
+    except Exception:  # network / parse / api error — never fatal
+        return None
+
+
+def apply(job: Job, data: dict) -> None:
+    """Write an enrichment result (from enrich_one or the cache) onto a job."""
+    job.notes = data.get("fit_note", "")
+    if data.get("fit_score") is not None:
+        try:
+            job.ai_score = max(0, min(100, int(data["fit_score"])))
+        except (TypeError, ValueError):
+            pass
+    if job.salary_min is None and data.get("salary_min"):
+        job.salary_min = _num(data.get("salary_min"))
+        job.salary_max = _num(data.get("salary_max"))
+        job.salary_currency = data.get("salary_currency", "") or job.salary_currency
+        job.salary_period = data.get("salary_period", "") or job.salary_period
+    job.fit_breakdown["llm_seniority_read"] = data.get("seniority_read", "")
+    job.fit_breakdown["llm_reputation_read"] = data.get("reputation_read", "")
+
+
+def enrich(jobs: list[Job], profile: Profile) -> list[Job]:
+    """Add an LLM fit note and fill missing salary where the model can infer it."""
+    client = make_client()
+    blurb = profile_blurb(profile)
+    for job in jobs:
+        data = enrich_one(client, job, blurb)
+        if data is None:
+            job.notes = "(LLM enrichment failed)"
+            continue
+        apply(job, data)
     return jobs
 
 

@@ -65,7 +65,10 @@ def build_parser() -> argparse.ArgumentParser:
     def add_enrich_args(sp):
         sp.add_argument("--enrich-top", type=int, default=25, help="how many candidates phase 2 evaluates")
         sp.add_argument("--no-refetch", action="store_true", help="skip re-fetching live pages")
-        sp.add_argument("--llm", action="store_true", help="use Claude Haiku (needs ANTHROPIC_API_KEY)")
+        sp.add_argument("--no-llm", action="store_true",
+                        help="skip Claude Haiku enrichment (LLM is ON by default)")
+        sp.add_argument("--refresh", action="store_true",
+                        help="ignore caches: re-fetch pages and re-call the LLM")
 
     def add_rank_args(sp):
         sp.add_argument("--final-min", type=int, default=0)
@@ -150,7 +153,7 @@ def _dispatch(cmd, args, profile_path, work, out, tiers_path) -> int:
     elif cmd == "enrich":
         enrich(EnrichConfig(
             profile_path=profile_path, work_dir=work, top_n=args.enrich_top,
-            refetch_pages=not args.no_refetch, use_llm=args.llm,
+            refetch_pages=not args.no_refetch, use_llm=not args.no_llm, refresh=args.refresh,
         ))
     elif cmd == "rank":
         jobs = rank(RankConfig(
@@ -164,8 +167,8 @@ def _dispatch(cmd, args, profile_path, work, out, tiers_path) -> int:
             reputable_only=not args.include_unknown, countries_only=not args.anywhere,
             role_gate=not args.no_role_gate, prescreen_min=args.prescreen_min,
             per_company_cap=args.per_company_cap, per_provider_cap=args.per_provider_cap,
-            enrich_top=args.enrich_top, refetch_pages=not args.no_refetch, use_llm=args.llm,
-            final_min=args.final_min, top_n=args.top, tiers_path=tiers_path,
+            enrich_top=args.enrich_top, refetch_pages=not args.no_refetch, use_llm=not args.no_llm,
+            refresh=args.refresh, final_min=args.final_min, top_n=args.top, tiers_path=tiers_path,
         ))
         _show(jobs)
     return 0

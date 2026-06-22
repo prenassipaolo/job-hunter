@@ -14,6 +14,7 @@ from pathlib import Path
 
 from rich.console import Console
 
+from job_hunter.cache import JsonCache, hash_key
 from job_hunter.models import Job
 from job_hunter.pagefetch import fetch_page_text
 from job_hunter.profile import Profile
@@ -29,6 +30,7 @@ class EnrichConfig:
     top_n: int = 25  # only enrich the top of the prescreen list (token control)
     refetch_pages: bool = True
     use_llm: bool = True
+    refresh: bool = False  # ignore caches and recompute (re-fetch pages, re-call the LLM)
 
 
 def _load(work_dir: str) -> list[Job]:
@@ -44,19 +46,48 @@ def enrich(cfg: EnrichConfig) -> list[Job]:
     head = jobs[: cfg.top_n]
     console.print(f"[bold]{len(head)}[/] candidates entering phase 2 (of {len(jobs)})")
 
+    cache_dir = Path(cfg.work_dir) / "cache"
+    if cfg.refresh:
+        console.print("[yellow]--refresh: ignoring caches, recomputing[/]")
+
     if cfg.refetch_pages:
-        refetched = 0
+        pages = JsonCache(cache_dir / "pages.json", enabled=not cfg.refresh)
+        refetched = hits = 0
         for job in head:
-            text = fetch_page_text(job.url)
+            text = pages.get(job.url)
+            if text is None:
+                text = fetch_page_text(job.url) or ""
+                if text:
+                    pages.set(job.url, text)  # cache successes only, so failures retry
+            else:
+                hits += 1
             if text:
                 job.description = text
                 job.page_refetched = True
                 refetched += 1
-        console.print(f"re-fetched {refetched}/{len(head)} live pages")
+        pages.save()
+        console.print(f"pages: {refetched}/{len(head)} available ({hits} from cache)")
 
     if cfg.use_llm and llm.available():
         console.print("[cyan]evaluating fit with Claude Haiku…[/]")
-        llm.enrich(head, profile)
+        cache = JsonCache(cache_dir / "llm.json", enabled=not cfg.refresh)
+        client = llm.make_client()
+        blurb = llm.profile_blurb(profile)
+        calls = hits = 0
+        for job in head:
+            key = hash_key(job.id, job.description[:4000], llm.MODEL)
+            data = cache.get(key)
+            if data is None:
+                data = llm.enrich_one(client, job, blurb)
+                if data is not None:
+                    cache.set(key, data)
+                    calls += 1
+            else:
+                hits += 1
+            if data:
+                llm.apply(job, data)
+        cache.save()
+        console.print(f"LLM: {calls} new calls, {hits} from cache")
     elif cfg.use_llm:
         console.print("[yellow]LLM requested but unavailable (no key / anthropic) — heuristic only[/]")
 

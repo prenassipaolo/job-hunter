@@ -42,9 +42,10 @@ Phase 3  rank       blend heuristic + AI ─▶ sort  ──▶ roles/*.md + ind
   Edit the board list in `src/job_hunter/providers/ats.py`.
 - **Source (optional key):** Adzuna — best salary + CH/IE/NL/UK coverage. Add free
   keys in `.env` and it switches on automatically.
-- **Scoring is hybrid:** a transparent offline heuristic by default; add `--llm` to
-  enrich the top roles with **Claude Haiku** (cheapest model) for a candid fit note
-  and salary inference.
+- **Scoring is hybrid:** a transparent offline heuristic plus **Claude Haiku**
+  enrichment (cheapest model) on the top roles for a candid fit note and salary
+  inference. The LLM runs **by default** in the full flow (results are cached); pass
+  `--no-llm` to skip it, and `--refresh` to ignore caches.
 
 ### What the fit score means
 
@@ -61,7 +62,7 @@ Bands: **Strong ≥70 · Good ≥55 · Moderate ≥40 · Stretch <40**.
 cd job-hunter
 uv sync                 # core install
 uv sync --extra dev     # + pytest/ruff
-uv sync --extra llm     # + anthropic (only needed for --llm)
+uv sync --extra llm     # + anthropic (needed for LLM enrichment, which is on by default)
 cp .env.example .env     # optional: add ADZUNA_* and/or ANTHROPIC_API_KEY
 ```
 
@@ -76,11 +77,11 @@ uv run job-hunter run --persona example
 
 # Run phases individually — each reads the previous artifact from data/work/<persona>/
 uv run job-hunter collect --persona example      # phase 1 -> phase1_candidates.json
-uv run job-hunter enrich  --persona example --llm # phase 2 -> phase2_enriched.json (Claude Haiku)
+uv run job-hunter enrich  --persona example      # phase 2 -> phase2_enriched.json (Claude Haiku, cached)
 uv run job-hunter rank    --persona example --top 40  # phase 3 -> role files
 
 # Full run with AI enrichment of the top 25 candidates
-uv run job-hunter run --persona example --llm --enrich-top 25
+uv run job-hunter run --persona example --enrich-top 25   # LLM on by default; --no-llm to skip
 
 # Cast a wider net
 uv run job-hunter run --persona example --prescreen-min 40 --include-unknown --anywhere
