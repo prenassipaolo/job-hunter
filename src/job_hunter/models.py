@@ -38,8 +38,9 @@ class Job:
     notes: str = ""  # optional LLM enrichment
 
     # Filled in by phase 2 (AI enrichment) and phase 3 (ranking).
-    ai_score: int | None = None  # 0-100 fit as judged by Claude Haiku
-    final_score: int = 0  # blended ranking score
+    ai_score: int | None = None  # 0-100 summary of the AI's subjective read (None = not enriched)
+    ai_features: dict = field(default_factory=dict)  # subjective feature scores (0-1) from the LLM
+    final_score: int = 0  # ranking score
     page_refetched: bool = False  # whether phase 2 re-pulled the live page
 
     # Manual curation, persisted per persona (1 = best; UNCURATED_TIER = lowest default).

@@ -18,7 +18,7 @@ from job_hunter.cache import JsonCache, hash_key
 from job_hunter.models import Job
 from job_hunter.pagefetch import fetch_page_text
 from job_hunter.profile import Profile
-from job_hunter.scoring import llm
+from job_hunter.scoring import llm, score_job
 
 console = Console()
 
@@ -113,6 +113,11 @@ def enrich(cfg: EnrichConfig) -> list[Job]:
         console.print(f"LLM: {calls} new calls, {hits} from cache, {skipped} skipped (not worth it)")
     elif cfg.use_llm:
         console.print("[yellow]LLM requested but unavailable (no key / anthropic) — heuristic only[/]")
+
+    # Re-score the head: fold the AI feature scores (and any refetched page text) into the
+    # SAME logistic, so the AI's judgment changes the fit_score directly (no separate blend).
+    for job in head:
+        score_job(job, profile)
 
     # Anything beyond the enriched head still flows forward with ai_score=None.
     out = Path(cfg.work_dir) / "phase2_enriched.json"

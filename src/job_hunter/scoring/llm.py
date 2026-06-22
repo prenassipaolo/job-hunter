@@ -19,13 +19,15 @@ from job_hunter.profile import Profile
 MODEL = "claude-haiku-4-5"  # cheapest current model — matches the persona's "less tokens" ask
 # Bump when the prompt/schema below changes — it's part of the cache key, so a bump
 # invalidates stale cached answers (see phases/enrich.py).
-PROMPT_VERSION = "2"
+PROMPT_VERSION = "3"
 
 _SYSTEM = """You are a blunt, experienced tech recruiter helping a specific candidate.
-You will receive the candidate's profile and one job posting. Judge how strong a
-candidate THIS person is for THIS role and reply with STRICT JSON:
+You will receive the candidate's profile and one job posting. Score two things for THIS
+person on a 0.0-1.0 scale, then describe the role. Reply with STRICT JSON:
 {
-  "fit_score": <integer 0-100: realistic chance of clearing the CV screen into an interview>,
+  "responsibilities": <0.0-1.0: how well the day-to-day work matches what THIS person
+                       already does / can credibly do (0 = unrelated, 1 = bullseye)>,
+  "interest": <0.0-1.0: how motivating this role likely is for them given their lanes/goals>,
   "fit_note": "<=35 words, candid one-line verdict for THIS candidate>",
   "pros": ["<=12 words each, up to 3 concrete reasons this is a good match>"],
   "cons": ["<=12 words each, up to 3 concrete risks/gaps for THIS candidate>"],
@@ -34,10 +36,10 @@ candidate THIS person is for THIS role and reply with STRICT JSON:
   "salary_max": <number or null>,
   "salary_currency": "<ISO code or empty>",
   "salary_period": "<year|month|empty>",
-  "seniority_read": "<too_junior|fits|too_senior|unclear>",
-  "reputation_read": "<strong|moderate|unknown — is this a place to learn and grow?>"
+  "seniority_read": "<too_junior|fits|too_senior|unclear>"
 }
-Be honest: empty pros/cons lists are fine. Only output the JSON object, nothing else."""
+Be honest and calibrated: most roles are 0.3-0.7; reserve >0.85 for a genuinely strong
+match. Empty pros/cons lists are fine. Only output the JSON object, nothing else."""
 
 
 def available() -> bool:
@@ -98,21 +100,35 @@ def enrich_one(client, job: Job, blurb: str) -> dict | None:
         return None
 
 
+def _unit(v) -> float | None:
+    """Coerce to a 0.0-1.0 float, or None if not a number."""
+    try:
+        return max(0.0, min(1.0, float(v)))
+    except (TypeError, ValueError):
+        return None
+
+
 def apply(job: Job, data: dict) -> None:
-    """Write an enrichment result (from enrich_one or the cache) onto a job."""
+    """Write an enrichment result (from enrich_one or the cache) onto a job.
+
+    Stores the subjective feature scores in ``job.ai_features`` (which the scorer folds
+    into the same logistic) and a 0-100 summary in ``ai_score`` for display/sorting.
+    """
     job.notes = data.get("fit_note", "")
-    if data.get("fit_score") is not None:
-        try:
-            job.ai_score = max(0, min(100, int(data["fit_score"])))
-        except (TypeError, ValueError):
-            pass
+    ai: dict[str, float] = {}
+    for name in ("responsibilities", "interest"):
+        val = _unit(data.get(name))
+        if val is not None:
+            ai[name] = val
+    job.ai_features = ai
+    if ai:
+        job.ai_score = round(100 * sum(ai.values()) / len(ai))
     if job.salary_min is None and data.get("salary_min"):
         job.salary_min = _num(data.get("salary_min"))
         job.salary_max = _num(data.get("salary_max"))
         job.salary_currency = data.get("salary_currency", "") or job.salary_currency
         job.salary_period = data.get("salary_period", "") or job.salary_period
     job.fit_breakdown["llm_seniority_read"] = data.get("seniority_read", "")
-    job.fit_breakdown["llm_reputation_read"] = data.get("reputation_read", "")
     job.fit_breakdown["llm_pros"] = data.get("pros") or []
     job.fit_breakdown["llm_cons"] = data.get("cons") or []
     job.fit_breakdown["llm_learning"] = data.get("learning_potential", "")

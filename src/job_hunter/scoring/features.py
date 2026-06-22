@@ -33,11 +33,17 @@ FEATURES: list[Feature] = [
     Feature("reputation", 0.8, "heuristic", 0.30, "Employer reputation"),
     Feature("recency", 0.6, "heuristic", 0.60, "Posting freshness"),
     Feature("stack_fit", 1.0, "heuristic", 0.80, "No wrong-stack blockers"),
+    # Subjective features — the LLM judges these (only for worthy jobs). Until enriched,
+    # the neutral 0.50 default applies, so the heuristic-only (prescreen) ranking is
+    # unaffected: the defaults are a constant offset absorbed by BIAS.
+    Feature("responsibilities", 1.8, "ai", 0.50, "Responsibilities match your work"),
+    Feature("interest", 1.2, "ai", 0.50, "Likely interest / motivation"),
 ]
 BY_NAME = {f.name: f for f in FEATURES}
 
-# Calibrated so all-default sits mid-low and an excellent role approaches (never reaches) 100.
-BIAS = -4.8
+# Calibrated so all-default sits mid-low and an excellent role approaches (never reaches)
+# 100. (Lowered by ~1.5 vs the 7-feature version to absorb the two AI defaults of 0.5.)
+BIAS = -6.3
 
 
 def combine(values: dict[str, float]) -> tuple[int, float, list[dict]]:

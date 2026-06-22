@@ -21,10 +21,6 @@ from job_hunter.tiers import apply_overrides, load_overrides
 
 console = Console()
 
-# When the AI re-checked the page, trust it slightly more than the keyword heuristic.
-W_HEURISTIC, W_AI = 0.45, 0.55
-
-
 @dataclass
 class RankConfig:
     work_dir: str
@@ -32,12 +28,6 @@ class RankConfig:
     final_min: int = 0
     top_n: int = 60
     tiers_path: str = ""  # sidecar of manual job tiers; "" = none
-
-
-def _blend(job: Job) -> int:
-    if job.ai_score is None:
-        return job.fit_score
-    return int(round(W_HEURISTIC * job.fit_score + W_AI * job.ai_score))
 
 
 def _age_key(job: Job) -> int:
@@ -64,8 +54,10 @@ def rank(cfg: RankConfig) -> list[Job]:
         raise FileNotFoundError(f"phase 2 artifact missing: {path}. Run `enrich` first.")
     jobs = [Job.from_dict(d) for d in json.loads(path.read_text(encoding="utf-8"))]
 
+    # fit_score already folds in the AI features (enrich re-scored the head), so the final
+    # score is just the fit score — no separate blend.
     for job in jobs:
-        job.final_score = _blend(job)
+        job.final_score = job.fit_score
         job.fit_label = label_for(job.final_score)
 
     # Manual job tiers (1 = best) win over fit: a promoted role floats to the top.

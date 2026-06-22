@@ -120,12 +120,17 @@ def objective_features(job: Job, profile: Profile) -> tuple[dict, dict, Lane]:
 
 
 def score_job(job: Job, profile: Profile) -> Job:
-    """Score one job in place from its objective features (+ any AI values already set)."""
+    """Score one job in place from its objective features + any AI feature scores.
+
+    Safe to call twice: phase 1 scores objective-only; phase 2 calls it again after the
+    LLM fills ``job.ai_features``, so the AI's judgment flows through the SAME logistic.
+    """
     values, detail, lane = objective_features(job, profile)
-    # Reuse AI feature values if a prior enrich stored them (v2.2); harmless when absent.
-    values.update(job.fit_breakdown.get("ai_features", {}) if job.fit_breakdown else {})
+    values.update(job.ai_features or {})  # AI subjective scores override their defaults
 
     score, z, components = combine(values)
+    # Preserve the LLM overview (pros/cons/etc.) across a re-score — it lives under llm_*.
+    preserved = {k: v for k, v in (job.fit_breakdown or {}).items() if k.startswith("llm_")}
     job.fit_score = score
     job.fit_label = label_for(score)
     job.fit_lane = lane.label
@@ -134,5 +139,6 @@ def score_job(job: Job, profile: Profile) -> Job:
         "components": components,
         "features": {c["name"]: c["value"] for c in components},
         **detail,
+        **preserved,
     }
     return job
