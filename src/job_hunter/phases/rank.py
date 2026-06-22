@@ -46,6 +46,18 @@ def _age_key(job: Job) -> int:
     return age if age is not None else 10**6
 
 
+def _rank_key(job: Job) -> tuple:
+    """Sort key (smaller = better): manual tier, then ENRICHED-FIRST, then blended score
+    desc, then freshest.
+
+    'Enriched-first' is the coherence fix: a job the LLM actually evaluated outranks an
+    un-evaluated one of the same tier, so honest AI scores (which are usually < an
+    inflated heuristic 100%) no longer push enriched jobs out of the visible shortlist.
+    When nothing is enriched (e.g. --no-llm), the flag is constant and has no effect.
+    """
+    return (job.tier, job.ai_score is None, -job.final_score, _age_key(job))
+
+
 def rank(cfg: RankConfig) -> list[Job]:
     path = Path(cfg.work_dir) / "phase2_enriched.json"
     if not path.exists():
@@ -62,8 +74,7 @@ def rank(cfg: RankConfig) -> list[Job]:
         apply_overrides(jobs, load_overrides(cfg.tiers_path))
 
     jobs = [j for j in jobs if j.final_score >= cfg.final_min]
-    # Sort: manual tier (1=best), then fit desc, then freshest first (unknown date last).
-    jobs.sort(key=lambda j: (j.tier, -j.final_score, _age_key(j)))
+    jobs.sort(key=_rank_key)
     jobs = jobs[: cfg.top_n]
 
     run_dir = write_results(jobs, cfg.out_dir)
