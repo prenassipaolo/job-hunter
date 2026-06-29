@@ -18,6 +18,21 @@ def _posted(job: Job) -> str:
     return d.isoformat() if d else "—"
 
 
+def latest_run_dir(out_dir: str | Path) -> Path | None:
+    """Newest run directory (date-named) under out_dir that has a roles.json, or None."""
+    out = Path(out_dir)
+    runs = sorted(d for d in out.glob("*") if d.is_dir() and (d / "roles.json").exists())
+    return runs[-1] if runs else None
+
+
+def load_latest_roles(out_dir: str | Path) -> list[dict]:
+    """Load the most recent roles.json for a persona's output dir (empty if none yet)."""
+    run = latest_run_dir(out_dir)
+    if run is None:
+        return []
+    return json.loads((run / "roles.json").read_text(encoding="utf-8"))
+
+
 def _display_score(job: Job) -> int:
     return job.final_score or job.fit_score
 

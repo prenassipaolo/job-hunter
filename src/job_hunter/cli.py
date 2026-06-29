@@ -84,6 +84,10 @@ def build_parser() -> argparse.ArgumentParser:
     add_collect_args(sub.add_parser("collect", parents=[common], help="phase 1 only"))
     add_enrich_args(sub.add_parser("enrich", parents=[common], help="phase 2 only"))
     add_rank_args(sub.add_parser("rank", parents=[common], help="phase 3 only"))
+
+    sp_web = sub.add_parser("web", help="serve the local results dashboard")
+    sp_web.add_argument("--host", default="127.0.0.1")
+    sp_web.add_argument("--port", type=int, default=8000)
     return p
 
 
@@ -145,6 +149,17 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _dispatch(cmd, args, profile_path, work, out, tiers_path) -> int:
+    if cmd == "web":
+        try:
+            import uvicorn
+
+            from job_hunter.web.app import create_app
+        except ImportError:
+            console.print("[red]The dashboard needs the 'web' extra:[/] uv sync --extra web")
+            return 2
+        console.print(f"[green]Dashboard →[/] http://{args.host}:{args.port}  (Ctrl-C to stop)")
+        uvicorn.run(create_app(DATA), host=args.host, port=args.port, log_level="warning")
+        return 0
     if cmd == "collect":
         collect(CollectConfig(
             profile_path=profile_path, work_dir=work, providers=args.providers,

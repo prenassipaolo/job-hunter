@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>job-hunter — {{ persona }}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.4; }
+    h1 { margin: 0 0 .25rem; }
+    .muted { color: #888; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; font-size: .9rem; }
+    th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid #8884; }
+    th { position: sticky; top: 0; background: Canvas; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:hover { background: #8881; }
+    a { color: inherit; }
+    .tier1 { font-weight: 700; }
+    select { padding: .3rem; }
+  </style>
+</head>
+<body>
+  <h1>job-hunter</h1>
+  <p class="muted">Local dashboard · {{ roles|length }} roles</p>
+
+  <form method="get" action="/">
+    <label>Persona:
+      <select name="persona" onchange="this.form.submit()">
+        {% for p in personas %}
+          <option value="{{ p }}" {% if p == persona %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+
+  {% if not roles %}
+    <p class="muted">No results yet for <strong>{{ persona }}</strong>. Run
+      <code>job-hunter run --persona {{ persona }}</code> first.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th class="num">Tier</th><th class="num">Fit</th><th class="num">AI</th>
+        <th>Company</th><th>Role</th><th>Lane</th><th>Country</th>
+        <th>Posted</th><th>Salary</th><th>Link</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in roles %}
+      <tr>
+        <td class="num">{{ r.tier }}</td>
+        <td class="num">{{ r.final_score or r.fit_score }}%</td>
+        <td class="num">{{ r.ai_score if r.ai_score is not none else "—" }}</td>
+        <td>{{ r.company }}</td>
+        <td>{{ r.title }}</td>
+        <td class="muted">{{ r.fit_breakdown.get("lane_id", "") }}</td>
+        <td>{{ r.country or "—" }}</td>
+        <td class="muted">{{ r.posted_at[:10] if r.posted_at else "—" }}</td>
+        <td>{{ r.salary_text }}</td>
+        <td>{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener">apply ↗</a>{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</body>
+</html>
